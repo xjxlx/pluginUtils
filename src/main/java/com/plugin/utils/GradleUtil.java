@@ -4,6 +4,7 @@ import static com.plugin.utils.SystemUtil.println;
 
 import com.plugin.utils.bean.ModuleType;
 
+import org.gradle.api.Project;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -24,15 +25,27 @@ public class GradleUtil {
     private File mRootDir = null;
     private File mSettingsGradle = null;
     private File mLocalLibs = null;
+    private boolean mGradleAnnotate = false;
     private final List<ModuleType> mListModel = new ArrayList<>();
 
     private static final String IMPLEMENTATION = "implementation";
+    private static final String PLUGINS = "plugins";
 
     private final ArrayList<String> mListLibs = new ArrayList<>();
 
     public void initGradle(File rootDir) {
         println("gradle init !");
         this.mRootDir = rootDir;
+    }
+
+    public void initGradle(Project project) {
+        println("gradle init !");
+        this.mRootDir = project.getRootDir();
+        float gradleVersion = Float.parseFloat(project.getGradle().getGradleVersion());
+        if (gradleVersion < 8.0f) {
+            // 在低于8.0的时候，需要再gradle文件内写入注解 @Suppress("DSL_SCOPE_VIOLATION")
+            mGradleAnnotate = true;
+        }
     }
 
     /**
@@ -85,7 +98,7 @@ public class GradleUtil {
         }
     }
 
-    public void changeDependencies() {
+    public void changeModules() {
         // 设置默认的本地文件libs地址
         if (mLocalLibs == null) {
             mLocalLibs = new File(mRootDir, "gradle/libs.versions.toml");
@@ -210,43 +223,58 @@ public class GradleUtil {
      */
     private void changeGradleFile(File gradle) {
         RandomAccessFile raf = null;
+        boolean pluginsFlag = false;
+
         try {
             String gradlePath = gradle.getAbsolutePath();
-            String modelName = "";
-            if (gradlePath.contains("/")) {
-                String[] gradlePathSplit = gradlePath.split("/");
-                int gradlePathLength = gradlePathSplit.length;
-                int index = gradlePathLength - 2;
-                if (index > 0) {
-                    modelName = gradlePathSplit[index];
-                }
-            }
-            println("当前的Model:" + modelName);
-
             // RandomAccessFile默认使用的是【iso-8859-1】字符集，使用的时候，需要把他转换成UTF-8
             raf = new RandomAccessFile(gradlePath, "rw");
+
+            // 给文件写入注解
+            if (mGradleAnnotate) {
+                raf.seek(0);
+                raf.writeUTF("@Suppress(\"DSL_SCOPE_VIOLATION\")");
+            }
+
             long tempLength = 0;
             while (tempLength < raf.length()) {
                 long filePointer = raf.getFilePointer();
                 String readLine = raf.readLine();
                 String reads = "";
+                long insertPositions = 0;
                 if (!TextUtils.isEmpty(readLine)) {
                     reads = new String(readLine.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+
+                    // replace plugins
+                    if (pluginsFlag) {
+                        if (reads.contains("}")) {
+                            pluginsFlag = false;
+                        }
+                    }
+                    if (pluginsFlag) {
+                        long insertPluginsPosition = replaceModulePlugins(raf, reads, filePointer, insertPositions);
+                        insertPositions += insertPluginsPosition;
+                    }
+                    if (reads.startsWith(PLUGINS)) {
+                        pluginsFlag = true;
+                    }
+
+                    // replace implementation
                     if (reads.contains(IMPLEMENTATION)) {
                         String trim = reads.trim();
                         // check starts
                         if ((trim.startsWith(IMPLEMENTATION)) && (!trim.startsWith("//"))) {
-                            println("implementation : " + reads);
+                            // println("implementation : " + reads);
                             // replace '
                             if (reads.contains("'")) {
                                 reads = reads.replace("'", "\"");
                             }
                             // change data
-                            replaceDependencies(raf, reads, filePointer);
+                            //  replaceDependencies(raf, reads, filePointer);
                         }
                     }
                 }
-                println("" + reads);
+                // println("" + reads);
                 tempLength = filePointer;
             }
         } catch (Exception exception) {
@@ -268,7 +296,7 @@ public class GradleUtil {
      * @param data        原始的数据
      * @param filePointer 开始替换的角标
      */
-    private void replaceDependencies(RandomAccessFile raf, String data, long filePointer) {
+    private void replaceModuleDependencies(RandomAccessFile raf, String data, long filePointer) {
         if (data.contains(":")) {
             String group = "";
             String name = "";
@@ -342,5 +370,95 @@ public class GradleUtil {
                 println("1：找不到对应的属性：" + group + "-" + name);
             }
         }
+    }
+
+    /**
+     * 替换module的plugins内容
+     *
+     * @param raf             随机读写流对象
+     * @param reads           plugins的内容
+     * @param filePointer     写入的位置
+     * @param insertPositions
+     */
+    private long replaceModulePlugins(RandomAccessFile raf, String reads, long filePointer, long insertPositions) {
+        String trim = reads.trim();
+        long interval = 0;
+        if (trim.startsWith("id")) {
+            String realLeft = "";
+            String realMiddle = "";
+            StringBuilder realRight = new StringBuilder();
+            StringBuilder resultBuilder = new StringBuilder();
+
+            if (reads.contains("'")) {
+                reads = reads.replace("'", "\"");
+            }
+            //remove id
+            if (reads.contains("\"")) {
+                String[] splitId = reads.split("\"");
+                String left = splitId[0];
+                if (left.contains("(")) {
+                    realLeft = left.replace("id", "alias");
+                } else {
+                    realLeft = left.replace("id", "alias(");
+                }
+
+                String tempMiddle = splitId[1];
+                if (tempMiddle.contains("-")) {
+                    tempMiddle = tempMiddle.replace("-", ".");
+                }
+                if (!tempMiddle.contains(")")) {
+                    tempMiddle += ")";
+                }
+                realMiddle = "libs.plugins." + tempMiddle;
+                int length = splitId.length;
+                if (length > 3) {
+                    String tempRight = splitId[2];
+                    if (tempRight.contains("version")) {
+                        String version = tempRight.replace("version", "");
+                        realRight.append(version);
+                        for (int i = 0; i < length; i++) {
+                            if (i <= 3) {
+                                continue;
+                            }
+                            realRight.append(splitId[i]);
+                        }
+                    } else {
+                        for (int i = 0; i < length; i++) {
+                            if (i <= 2) {
+                                continue;
+                            }
+                            realRight.append(splitId[i]);
+                        }
+                    }
+                }
+            }
+
+            resultBuilder.append(realLeft).append(realMiddle).append(realRight);
+            // 补全右侧的占位
+            int readsLength = reads.length();
+            int resultLength = resultBuilder.length();
+            println("readsLength: " + readsLength + " resultLength: " + resultLength);
+            interval = readsLength - resultLength;
+            if (resultLength < readsLength) {
+                for (int i = 0; i < interval; i++) {
+                    resultBuilder.append(" ");
+                }
+            } else if (resultLength > readsLength) {
+                resultBuilder.append("\r\n");
+            }
+            String result = resultBuilder.toString();
+            try {
+                raf.seek(filePointer);
+                raf.write(result.getBytes(StandardCharsets.UTF_8));
+                println("module:plugins: [" + result + "] write success!");
+            } catch (Exception e) {
+                println("module:plugins: [" + result + "] write failed!");
+            }
+            println("plugins：[ " + result + " ]");
+        }
+        if (interval < 0) {
+            interval = Math.abs(interval);
+        }
+        return interval;
     }
 }
