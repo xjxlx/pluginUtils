@@ -1,7 +1,5 @@
 package com.plugin.utils;
 
-import java.io.File;
-
 public class Test {
     private static final RandomAccessFileUtil util = new RandomAccessFileUtil();
 

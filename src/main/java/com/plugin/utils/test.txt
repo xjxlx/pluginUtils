@@ -1,4 +1,2 @@
-    "窗前明月光"， // 我是测试的数据1
-    "疑是地上霜"，// 我是测试的数据2
-    "举头望明月",
-    "低头思故乡"。
+    id("com.android.application") // abs
+    id("org.jetbrains.kotlin.android")
