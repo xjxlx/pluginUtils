@@ -23,32 +23,37 @@ public class GradleUtil {
     private final FileUtil mFileUtil = new FileUtil();
     private final RandomAccessFileUtil mRandomAccessFileUtil = new RandomAccessFileUtil();
     private File mRootDir = null;
-    private File mSettingsGradle = null;
+    private File mRootGradle = null;
     private File mLocalLibs = null;
-    private boolean mGradleAnnotate = false;
+    private boolean mGradleAnnotate = true;
 
     private static final String SUPPRESS = "@Suppress(\"DSL_SCOPE_VIOLATION\")";
     private static final String IMPLEMENTATION = "implementation";
     private static final String ID = "id";
+    private static final String PLUGINS = "plugins";
     private static final String VERSION = "version";
 
     private final ArrayList<String> mListLibs = new ArrayList<>();
     private final ArrayList<String> mListPlugins = new ArrayList<>();
-    private final ArrayList<String> mListContent = new ArrayList<>();
+    private final ArrayList<String> mModuleListContent = new ArrayList<>();
+    private final ArrayList<String> mRootListContent = new ArrayList<>();
 
     public void initGradle(File rootDir) {
         println("gradle init !");
         this.mRootDir = rootDir;
+
+        // 读取本地libs.version.toml文件信息
+        readLibsVersions();
     }
 
     public void initGradle(Project project) {
-        println("gradle init !");
-        this.mRootDir = project.getRootDir();
         float gradleVersion = Float.parseFloat(project.getGradle().getGradleVersion());
         if (gradleVersion < 8.0f) {
             // 在低于8.0的时候，需要再gradle文件内写入注解 @Suppress("DSL_SCOPE_VIOLATION")
             mGradleAnnotate = true;
         }
+
+        initGradle(mRootDir);
     }
 
     /**
@@ -95,22 +100,12 @@ public class GradleUtil {
     }
 
     public void changeModules() {
-        // 设置默认的本地文件libs地址
-        if (mLocalLibs == null) {
-            mLocalLibs = new File(mRootDir, "gradle/libs.versions.toml");
-        }
-
-        // 1：读取本地libs.version.toml文件信息
-        readLibsVersions();
-
         // 2：获取project的目录信息，保活settings、module、library...
         File[] rootFiles = mRootDir.listFiles();
         if (rootFiles != null && rootFiles.length > 0) {
-            mSettingsGradle = mFileUtil.filterStart(rootFiles, "settings.gradle");
-            println("settings: " + mSettingsGradle.getAbsolutePath());
-
+            File settingsGradle = mFileUtil.filterStart(rootFiles, "settings.gradle");
             // 读取settings文件的内容
-            List<String> settingContent = mFileUtil.readFile(mSettingsGradle);
+            List<String> settingContent = mFileUtil.readFile(settingsGradle);
             // 过滤引入include的信息，就是model的名字
             List<String> listInclude = mFileUtil.filterStart(settingContent, "include");
 
@@ -126,7 +121,7 @@ public class GradleUtil {
                         if (buildGradle != null && buildGradle.exists()) {
                             println("当前的module:" + name);
                             ModuleType moduleType = new ModuleType(buildGradle, buildGradle.getName().endsWith(".kts"));
-                            changeGradleFile(moduleType.getModel());
+                            changeModuleGradleFile(moduleType.getModel());
                         }
                     }
                 }
@@ -135,8 +130,50 @@ public class GradleUtil {
         //  changeGradleFile(new File("/Users/XJX/AndroidStudioProjects/plugins/pluginUtil/src/main/java/com/plugin/utils/TestData.txt"));
     }
 
-    public void changeSettings() {
+    public void changeRootGradle() {
+        // root gradle
+        File[] rootFiles = mRootDir.listFiles();
+        if (rootFiles != null) {
+            mRootGradle = mFileUtil.filterStart(rootFiles, "build.gradle");
 
+            if (mRootGradle != null && mRootGradle.exists()) {
+                mRootListContent.clear();
+                mRootListContent.addAll(mRandomAccessFileUtil.readFile(mRootGradle.getPath(), "r"));
+
+                for (int i = 0; i < mRootListContent.size(); i++) {
+                    String item = mRootListContent.get(i);
+                    String trim = item.trim();
+                    if (trim.startsWith(ID)) {
+                        String plugin = replacePlugins(item);
+                        mRootListContent.set(i, plugin);
+                    } else if (trim.startsWith(PLUGINS)) {
+                        if (mGradleAnnotate) { // 添加注解头
+                            if (!mRootListContent.contains(SUPPRESS)) {
+                                mRootListContent.add(i, SUPPRESS);
+                            }
+                        }
+                    }
+                }
+
+                // 添加注解的启用
+                if (mGradleAnnotate) {
+                    String lastItem = mRootListContent.get(mRootListContent.size() - 1);
+                    if (!lastItem.equals("true")) {
+                        mRootListContent.set(mRootListContent.size() - 1, "true");
+                    }
+                }
+
+                // loop write
+                try (RandomAccessFile raf = new RandomAccessFile(mRootGradle.getPath(), "rw")) {
+                    for (String item : mRootListContent) {
+                        raf.write(item.getBytes());
+                        raf.write("\r\n".getBytes());
+                    }
+                } catch (Exception e) {
+                    println("root-gradle 写入失败：" + e.getMessage());
+                }
+            }
+        }
     }
 
     /**
@@ -171,7 +208,12 @@ public class GradleUtil {
      * 读取云端libs.versions.toml文件信息
      */
     private void readLibsVersions() {
-        if ((mLocalLibs == null) || (!mLocalLibs.exists())) {
+        // 设置默认的本地文件libs地址
+        if (mLocalLibs == null) {
+            mLocalLibs = new File(mRootDir, "gradle/libs.versions.toml");
+        }
+
+        if (!mLocalLibs.exists()) {
             println("本地的libs.version.toml文件不存在！");
             return;
         }
@@ -230,40 +272,40 @@ public class GradleUtil {
      *
      * @param gradle 对应的gradle文件
      */
-    private void changeGradleFile(File gradle) {
+    private void changeModuleGradleFile(File gradle) {
         // 读取所有的字符串存入集合
-        mListContent.clear();
+        mModuleListContent.clear();
         String gradlePath = gradle.getAbsolutePath();
         // 1：读取gradle中的文件
-        mListContent.addAll(mRandomAccessFileUtil.readFile(gradlePath, "r"));
+        mModuleListContent.addAll(mRandomAccessFileUtil.readFile(gradlePath, "r"));
 
         try (RandomAccessFile raf = new RandomAccessFile(gradlePath, "rw")) {
             // 2:添加注解头
             if (mGradleAnnotate) {
-                if (!mListContent.contains(SUPPRESS)) {
-                    mListContent.add(0, SUPPRESS);
+                if (!mModuleListContent.contains(SUPPRESS)) {
+                    mModuleListContent.add(0, SUPPRESS);
                 }
             }
 
-            for (int i = 0; i < mListContent.size(); i++) {
-                String content = mListContent.get(i);
+            for (int i = 0; i < mModuleListContent.size(); i++) {
+                String content = mModuleListContent.get(i);
                 String trim = content.trim();
                 if (trim.startsWith(ID)) {
                     // 3:替换 plugins
                     println("id: " + content);
-                    String plugins = replaceModulePlugins(content);
-                    mListContent.set(i, plugins);
+                    String plugins = replacePlugins(content);
+                    mModuleListContent.set(i, plugins);
 
                 } else if (trim.startsWith(IMPLEMENTATION)) {
                     // 4:替换 implementation
                     println(IMPLEMENTATION + ":" + content);
                     String implementation = replaceModuleDependencies(content);
-                    mListContent.set(i, implementation);
+                    mModuleListContent.set(i, implementation);
                 }
             }
 
             // loop write data
-            for (String item : mListContent) {
+            for (String item : mModuleListContent) {
                 raf.write(item.getBytes());
                 raf.write("\r\n".getBytes());
             }
@@ -366,7 +408,7 @@ public class GradleUtil {
      *
      * @param reads plugins的内容
      */
-    private String replaceModulePlugins(String reads) {
+    private String replacePlugins(String reads) {
         String result = reads;
         try {
             String type = "";// 分隔符，要么是"要么是'
