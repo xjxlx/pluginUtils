@@ -35,6 +35,7 @@ public class GradleUtil {
     private static final String VERSION = "version";
 
     private final ArrayList<String> mListLibs = new ArrayList<>();
+    private final ArrayList<String> mListPlugins = new ArrayList<>();
     private final ArrayList<String> mListContent = new ArrayList<>();
 
     public void initGradle(File rootDir) {
@@ -171,47 +172,57 @@ public class GradleUtil {
      * 读取云端libs.versions.toml文件信息
      */
     private void readLibsVersions() {
-        RandomAccessFile rafGradle = null;
-        try {
-            if ((mLocalLibs == null) || (!mLocalLibs.exists())) {
-                println("本地的libs.version.toml文件不存在！");
-                return;
-            }
-            if (mLocalLibs.length() == 0) {
-                println("本地的libs.version.toml内容为空！");
-                return;
-            }
+        if ((mLocalLibs == null) || (!mLocalLibs.exists())) {
+            println("本地的libs.version.toml文件不存在！");
+            return;
+        }
+        if (mLocalLibs.length() == 0) {
+            println("本地的libs.version.toml内容为空！");
+            return;
+        }
 
-            rafGradle = new RandomAccessFile(mLocalLibs, "r");
-            boolean startFlag = false;
+        try (RandomAccessFile rafGradle = new RandomAccessFile(mLocalLibs, "r")) {
+            boolean libsFlag = false;
+            boolean pluginsFlag = false;
             mListLibs.clear();
-            while (rafGradle.getFilePointer() != rafGradle.length()) {
+            mListPlugins.clear();
+
+            while (rafGradle.getFilePointer() < rafGradle.length()) {
                 String readLine = rafGradle.readLine();
                 if (!TextUtils.isEmpty(readLine)) {
                     String versionContent = new String(readLine.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-                    if (startFlag) {
+
+                    if (libsFlag) {
+                        if (versionContent.startsWith("[plugins]")) {
+                            libsFlag = false;
+                        }
+                    }
+                    // write libs
+                    if (libsFlag) {
                         mListLibs.add(versionContent);
                     }
                     if (versionContent.startsWith("[libraries]")) {
-                        startFlag = true;
+                        libsFlag = true;
                     }
-                    if (startFlag) {
-                        if (versionContent.startsWith("[plugins]")) {
-                            startFlag = false;
+
+                    // write plugins
+                    if (pluginsFlag) {
+                        if (versionContent.startsWith("[bundles]")) {
+                            pluginsFlag = false;
                         }
+                    }
+                    if (pluginsFlag) {
+                        mListPlugins.add(versionContent);
+                    }
+                    if (versionContent.startsWith("[plugins]")) {
+                        pluginsFlag = true;
                     }
                 }
             }
             println("读取library成功 :" + mListLibs);
+            println("读取plugins成功 :" + mListPlugins);
         } catch (Exception exception) {
             println("读取library失败 :" + exception.getMessage());
-        } finally {
-            if (rafGradle != null) {
-                try {
-                    rafGradle.close();
-                } catch (Exception ignored) {
-                }
-            }
         }
     }
 
