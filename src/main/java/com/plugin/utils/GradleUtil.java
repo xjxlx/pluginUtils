@@ -242,7 +242,7 @@ public class GradleUtil {
                 } else if (trim.startsWith(IMPLEMENTATION)) {
                     // 4:替换 implementation
                     println(IMPLEMENTATION + ":" + content);
-                    // replaceModuleDependencies(raf, content);
+                    replaceModuleDependencies(raf, content);
                 } else {
                     // raf.write((content + "\r\n").getBytes());
                 }
@@ -260,6 +260,8 @@ public class GradleUtil {
      */
     private void replaceModuleDependencies(RandomAccessFile raf, String data) {
         if (data.contains(":")) {
+            String type = "";
+            boolean flag = false;
             String group = "";
             String name = "";
 
@@ -272,41 +274,36 @@ public class GradleUtil {
             //    implementation("org.jsoup:jsoup:1.16.1") // html依赖库
             //    implementation("org.jetbrains.kotlin:kotlin-reflect")
 
+            // 1:确定是用什么进行分割的
             String[] splitImplementation = data.split(IMPLEMENTATION);
             realLeft = splitImplementation[0] + IMPLEMENTATION;
             String implementationContent = splitImplementation[1].trim();
-            if (implementationContent.startsWith("'")) {
-                //  implementation 'androidx.viewpager2:viewpager2:1.0.0' //
-                String[] split = implementationContent.split("'");
-                String content = split[1];
-                String[] splitVersion = content.split(":");
-                group = splitVersion[0];
-                name = splitVersion[1];
-                for (int i = 2; i < split.length; i++) {
-                    realRight += split[i];
-                }
-            } else if (implementationContent.startsWith("\"")) {
-                //  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
-                String[] split = implementationContent.split("\"");
-                String content = split[1];
-                String[] splitVersion = content.split(":");
-                group = splitVersion[0];
-                name = splitVersion[1];
-                for (int i = 2; i < split.length; i++) {
-                    realRight += split[i];
-                }
-            } else if (implementationContent.startsWith("(\"")) {
-                //  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
-                String contentLeft = implementationContent.split("\\(\"")[1];
-                String[] splitContent = contentLeft.split("\\)");
-                String content = splitContent[0];
-                String[] splitVersion = content.split(":");
-                group = splitVersion[0];
-                name = splitVersion[1];
-                for (int i = 1; i < splitContent.length; i++) {
-                    realRight = splitContent[i];
-                }
+
+            // 获取右侧去除括号的数据
+            String allRight = "";
+            if (implementationContent.startsWith("(")) {
+                allRight = implementationContent.substring(1, implementationContent.length());
+                flag = true;
+            } else {
+                allRight = implementationContent;
             }
+            String allRightTrim = allRight.trim();
+            if (allRightTrim.startsWith("'")) {
+                type = "'";
+            } else if (allRightTrim.startsWith("\"")) {
+                type = "\"";
+            }
+
+            // 开始分割
+            String[] splitType = implementationContent.split(type);
+            String tempMiddle = splitType[1];
+            String[] splitVersion = tempMiddle.split(":");
+            group = splitVersion[0];
+            name = splitVersion[1];
+
+            // 这里中间长度加2的原因是因为tempMiddle是被type分割出来的，分割的时候，两边的type都会被清除掉，
+            // 所以这个要加上分割的字符串长度
+            realRight = implementationContent.substring(tempMiddle.length() + type.length() * 2, implementationContent.length());
 
             String versions = "";
             for (int i = 0; i < mListLibs.size(); i++) {
@@ -319,7 +316,11 @@ public class GradleUtil {
                     if (libsName.contains("-")) {
                         libsName = libsName.replace("-", ".");
                     }
-                    realMiddle = "(libs." + libsName + ")";
+                    if (flag) {
+                        realMiddle = "libs." + libsName;
+                    } else {
+                        realMiddle = "(libs." + libsName + ")";
+                    }
                     result = realLeft + realMiddle + realRight;
                     println("2: result:[" + result + "]");
                     break;

@@ -1,4 +1,7 @@
-             implementation 'androidx.viewpager2:viewpager2:1.0.0' //
+
+
+
+      implementation 'androidx.viewpager2:viewpager2:1.0.0' //
                         implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
  implementation("org.json:json:20230227")// json 依赖库 " :abc
             implementation("org.jsoup:jsoup:1.16.1") // html依赖库
