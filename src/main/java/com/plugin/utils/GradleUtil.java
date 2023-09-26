@@ -13,7 +13,6 @@ import org.jsoup.nodes.Element;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -22,16 +21,21 @@ import java.util.List;
 public class GradleUtil {
 
     private final FileUtil mFileUtil = new FileUtil();
+    private final RandomAccessFileUtil mRandomAccessFileUtil = new RandomAccessFileUtil();
     private File mRootDir = null;
     private File mSettingsGradle = null;
     private File mLocalLibs = null;
     private boolean mGradleAnnotate = false;
     private final List<ModuleType> mListModel = new ArrayList<>();
 
-    private static final String IMPLEMENTATION = "implementation";
+    private static final String SUPPRESS = "@Suppress(\"DSL_SCOPE_VIOLATION\")";
     private static final String PLUGINS = "plugins";
+    private static final String IMPLEMENTATION = "implementation";
+    private static final String ID = "id";
+    private static final String VERSION = "version";
 
     private final ArrayList<String> mListLibs = new ArrayList<>();
+    private final ArrayList<String> mListContent = new ArrayList<>();
 
     public void initGradle(File rootDir) {
         println("gradle init !");
@@ -71,15 +75,8 @@ public class GradleUtil {
                         JSONArray rawLines = jsonBlob.getJSONArray("rawLines");
                         for (Object next : rawLines) {
                             String content = String.valueOf(next);
-
-                            if (content.startsWith("#") || content.startsWith("[")) {
-                                content = "\r\n" + content + "\r\n";
-                            }
-
                             outputStream.write(content.getBytes());
-                            if (content.endsWith("\"") || content.endsWith("]") || content.endsWith("}")) {
-                                outputStream.write("\r\n".getBytes());
-                            }
+                            outputStream.write("\r\n".getBytes());
                         }
                         println("gradle-file write success!");
                         return;
@@ -132,12 +129,14 @@ public class GradleUtil {
                             println("当前的module:" + name);
                             ModuleType moduleType = new ModuleType(buildGradle, buildGradle.getName().endsWith(".kts"));
                             mListModel.add(moduleType);
-                            changeGradleFile(moduleType.getModel());
+                            // changeGradleFile(moduleType.getModel());
                         }
                     }
                 }
             }
         }
+
+        changeGradleFile(new File("/Users/XJX/AndroidStudioProjects/plugins/pluginUtil/src/main/java/com/plugin/utils/Test2.txt"));
     }
 
     /**
@@ -222,147 +221,107 @@ public class GradleUtil {
      * @param gradle 对应的gradle文件
      */
     private void changeGradleFile(File gradle) {
-        RandomAccessFile raf = null;
-        boolean pluginsFlag = false;
+        // 读取所有的字符串存入集合
+        mListContent.clear();
+        String gradlePath = gradle.getAbsolutePath();
+        // 1：读取gradle中的文件
+        mListContent.addAll(mRandomAccessFileUtil.readFile(gradlePath, "r"));
 
-        try {
-            String gradlePath = gradle.getAbsolutePath();
-            // RandomAccessFile默认使用的是【iso-8859-1】字符集，使用的时候，需要把他转换成UTF-8
-            raf = new RandomAccessFile(gradlePath, "rw");
-
-            // 给文件写入注解
-            if (mGradleAnnotate) {
-                raf.seek(0);
-                raf.writeUTF("@Suppress(\"DSL_SCOPE_VIOLATION\")");
+        try (RandomAccessFile raf = new RandomAccessFile(gradlePath, "rw")) {
+            // 2:添加注解头
+            if (!mListContent.contains(SUPPRESS)) {
+                mListContent.add(0, SUPPRESS);
             }
 
-            long tempLength = 0;
-            while (tempLength < raf.length()) {
-                long filePointer = raf.getFilePointer();
-                String readLine = raf.readLine();
-                String reads = "";
-                long insertPositions = 0;
-                if (!TextUtils.isEmpty(readLine)) {
-                    reads = new String(readLine.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-
-                    // replace plugins
-                    if (pluginsFlag) {
-                        if (reads.contains("}")) {
-                            pluginsFlag = false;
-                        }
-                    }
-                    if (pluginsFlag) {
-                        long insertPluginsPosition = replaceModulePlugins(raf, reads, filePointer, insertPositions);
-                        insertPositions += insertPluginsPosition;
-                    }
-                    if (reads.startsWith(PLUGINS)) {
-                        pluginsFlag = true;
-                    }
-
-                    // replace implementation
-                    if (reads.contains(IMPLEMENTATION)) {
-                        String trim = reads.trim();
-                        // check starts
-                        if ((trim.startsWith(IMPLEMENTATION)) && (!trim.startsWith("//"))) {
-                            // println("implementation : " + reads);
-                            // replace '
-                            if (reads.contains("'")) {
-                                reads = reads.replace("'", "\"");
-                            }
-                            // change data
-                            //  replaceDependencies(raf, reads, filePointer);
-                        }
-                    }
+            for (String content : mListContent) {
+                String trim = content.trim();
+                if (trim.startsWith("id")) {
+                    // 3:替换 plugins
+                    // println("id: " + content);
+                    replaceModulePlugins(raf, content);
+                } else if (trim.startsWith(IMPLEMENTATION)) {
+                    // 4:替换 implementation
+                    println(IMPLEMENTATION + ":" + content);
+                    // replaceModuleDependencies(raf, content);
+                } else {
+                    // raf.write((content + "\r\n").getBytes());
                 }
-                // println("" + reads);
-                tempLength = filePointer;
             }
         } catch (Exception exception) {
             println("gradle 信息写入失败: " + exception.getMessage());
-        } finally {
-            if (raf != null) {
-                try {
-                    raf.close();
-                } catch (Exception ignored) {
-                }
-            }
         }
     }
 
     /**
      * 替换dependencies具体的值
      *
-     * @param raf         操作文件读写流的对象
-     * @param data        原始的数据
-     * @param filePointer 开始替换的角标
+     * @param raf  操作文件读写流的对象
+     * @param data 原始的数据
      */
-    private void replaceModuleDependencies(RandomAccessFile raf, String data, long filePointer) {
+    private void replaceModuleDependencies(RandomAccessFile raf, String data) {
         if (data.contains(":")) {
             String group = "";
             String name = "";
-            String originalLeft = ""; // implementation("com.android.tools.build
-            String originalRight = ""; // gradle-api:7.4.0")
 
             String realLeft = "";
             String realMiddle = "";
             String realRight = "";
             String result = "";
 
-            String[] split = data.split(":");
-            int length = (split.length) - 1;
-            // 中间部分可能没有，直接就是 group+ name ,没有version
-            originalLeft = split[0];
+            //    implementation("org.json:json:20230227")// json 依赖库 " :abc
+            //    implementation("org.jsoup:jsoup:1.16.1") // html依赖库
+            //    implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-            // realLeft
-            String[] splitLeft = originalLeft.split("\"");
-            realLeft = splitLeft[0];
-            group = splitLeft[1];
-
-            // get original right
-            if (length >= 2) {
-                // implementation("com.android.tools.build:gradle-api:7.4.0")
-                originalRight = split[2];
-            } else {
-                // implementation "org.jetbrains.kotlin:kotlin-reflect"
-                originalRight = split[1];
+            String[] splitImplementation = data.split(IMPLEMENTATION);
+            realLeft = splitImplementation[0] + IMPLEMENTATION;
+            String implementationContent = splitImplementation[1].trim();
+            if (implementationContent.startsWith("'")) {
+                //  implementation 'androidx.viewpager2:viewpager2:1.0.0' //
+                String[] split = implementationContent.split("'");
+                String content = split[1];
+                String[] splitVersion = content.split(":");
+                group = splitVersion[0];
+                name = splitVersion[1];
+                for (int i = 2; i < split.length; i++) {
+                    realRight += split[i];
+                }
+            } else if (implementationContent.startsWith("\"")) {
+                //  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
+                String[] split = implementationContent.split("\"");
+                String content = split[1];
+                String[] splitVersion = content.split(":");
+                group = splitVersion[0];
+                name = splitVersion[1];
+                for (int i = 2; i < split.length; i++) {
+                    realRight += split[i];
+                }
+            } else if (implementationContent.startsWith("(\"")) {
+                //  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+                String contentLeft = implementationContent.split("\\(\"")[1];
+                String[] splitContent = contentLeft.split("\\)");
+                String content = splitContent[0];
+                String[] splitVersion = content.split(":");
+                group = splitVersion[0];
+                name = splitVersion[1];
+                for (int i = 1; i < splitContent.length; i++) {
+                    realRight = splitContent[i];
+                }
             }
-
-            String[] splitOriginRight = originalRight.split("\"");
-
-            // get name
-            if (length >= 2) {
-                name = split[1];
-            } else {
-                name = splitOriginRight[0];
-            }
-
-            // get real right
-            realRight = splitOriginRight[1];
 
             String versions = "";
             for (int i = 0; i < mListLibs.size(); i++) {
-                versions = mListLibs.get(i);
-                if (versions.contains(group) && versions.contains(name)) {
+                String line = mListLibs.get(i);
+                if (line.contains(group) && line.contains(name)) {
+                    versions = line;
                     println("1：找到了对应的属性：" + versions);
                     // 取出libs.version.name
-                    realMiddle = "libs." + versions.split("=")[0].replace("-", ".").trim();
-                    int originLength = data.length();
+                    String libsName = versions.split("=")[0].trim();
+                    if (libsName.contains("-")) {
+                        libsName = libsName.replace("-", ".");
+                    }
+                    realMiddle = "(libs." + libsName + ")";
                     result = realLeft + realMiddle + realRight;
-                    int resultLength = result.length();
-                    if (resultLength < originLength) {
-                        int intervalLength = originLength - resultLength;
-                        for (int j = 0; j < intervalLength; j++) {
-                            result += " ";
-                        }
-                    }
                     println("2: result:[" + result + "]");
-                    try {
-                        raf.seek(filePointer);
-                        raf.write(result.getBytes(StandardCharsets.UTF_8));
-                        println("3：写入：result: " + result + " 成功！");
-                    } catch (IOException e) {
-                        println("3：写入数据异常！");
-                    }
                     break;
                 }
             }
@@ -375,90 +334,81 @@ public class GradleUtil {
     /**
      * 替换module的plugins内容
      *
-     * @param raf             随机读写流对象
-     * @param reads           plugins的内容
-     * @param filePointer     写入的位置
-     * @param insertPositions
+     * @param raf   随机读写流对象
+     * @param reads plugins的内容
      */
-    private long replaceModulePlugins(RandomAccessFile raf, String reads, long filePointer, long insertPositions) {
-        String trim = reads.trim();
-        long interval = 0;
-        if (trim.startsWith("id")) {
+    private void replaceModulePlugins(RandomAccessFile raf, String reads) {
+        try {
+            String type = "";// 分隔符，要么是"要么是'
+            boolean flag = false;
             String realLeft = "";
             String realMiddle = "";
-            StringBuilder realRight = new StringBuilder();
-            StringBuilder resultBuilder = new StringBuilder();
+            String realRight = "";
+            String result = "";
 
-            if (reads.contains("'")) {
-                reads = reads.replace("'", "\"");
+            // 先确认是用什么进行分割的，比如：' 或者 "
+            String[] splitID = reads.split(ID);
+            String pluginsContent = splitID[1];
+            // 去除所有的空格
+            if (pluginsContent.contains(" ")) {
+                pluginsContent = pluginsContent.replace(" ", "");
             }
-            //remove id
-            if (reads.contains("\"")) {
-                String[] splitId = reads.split("\"");
-                String left = splitId[0];
-                if (left.contains("(")) {
-                    realLeft = left.replace("id", "alias");
+            if (pluginsContent.startsWith("(")) {
+                flag = true;
+                pluginsContent = pluginsContent.replace("(", "");
+                if (pluginsContent.startsWith("'")) {
+                    type = "'";
+                } else if (pluginsContent.startsWith("\"")) {
+                    type = "\"";
+                }
+            } else {
+                if (pluginsContent.startsWith("'")) {
+                    type = "'";
+                } else if (pluginsContent.startsWith("\"")) {
+                    type = "\"";
+                }
+            }
+
+            // 使用指定的类型去分割字符串
+            String[] split = reads.split(type);
+            String tempLeft = split[0];
+            String tempContent = split[1];
+            String allLeft = tempLeft + type + tempContent;
+            realRight = reads.replace(allLeft, "");
+
+            // check version
+            if (realRight.contains(VERSION)) {
+                String versionInfo = "";
+                if (flag) {
+                    String[] splitVersion = realRight.split("\\)");
+                    versionInfo = splitVersion[1];
                 } else {
-                    realLeft = left.replace("id", "alias(");
+                    versionInfo = realRight;
                 }
+                String replaceRight = versionInfo.replace("'", "\"");
+                String[] splitRightVersion = replaceRight.split("\"");
+                String version = splitRightVersion[0];
+                String versionCode = splitRightVersion[1];
 
-                String tempMiddle = splitId[1];
-                if (tempMiddle.contains("-")) {
-                    tempMiddle = tempMiddle.replace("-", ".");
-                }
-                if (!tempMiddle.contains(")")) {
-                    tempMiddle += ")";
-                }
-                realMiddle = "libs.plugins." + tempMiddle;
-                int length = splitId.length;
-                if (length > 3) {
-                    String tempRight = splitId[2];
-                    if (tempRight.contains("version")) {
-                        String version = tempRight.replace("version", "");
-                        realRight.append(version);
-                        for (int i = 0; i < length; i++) {
-                            if (i <= 3) {
-                                continue;
-                            }
-                            realRight.append(splitId[i]);
-                        }
-                    } else {
-                        for (int i = 0; i < length; i++) {
-                            if (i <= 2) {
-                                continue;
-                            }
-                            realRight.append(splitId[i]);
-                        }
-                    }
-                }
+                realRight = realRight.replace(version, "");
+                realRight = realRight.replace("\"" + versionCode + "\"", "");
             }
 
-            resultBuilder.append(realLeft).append(realMiddle).append(realRight);
-            // 补全右侧的占位
-            int readsLength = reads.length();
-            int resultLength = resultBuilder.length();
-            println("readsLength: " + readsLength + " resultLength: " + resultLength);
-            interval = readsLength - resultLength;
-            if (resultLength < readsLength) {
-                for (int i = 0; i < interval; i++) {
-                    resultBuilder.append(" ");
-                }
-            } else if (resultLength > readsLength) {
-                resultBuilder.append("\r\n");
+
+            if (tempContent.contains("-")) {
+                tempContent = tempContent.replace("-", ".");
             }
-            String result = resultBuilder.toString();
-            try {
-                raf.seek(filePointer);
-                raf.write(result.getBytes(StandardCharsets.UTF_8));
-                println("module:plugins: [" + result + "] write success!");
-            } catch (Exception e) {
-                println("module:plugins: [" + result + "] write failed!");
+            if (!flag) {
+                realMiddle = "(libs.plugins." + tempContent + ")";
+            } else {
+                realMiddle = "libs.plugins." + tempContent;
             }
-            println("plugins：[ " + result + " ]");
+
+            realLeft = tempLeft.replace(ID, "alias");
+            result = realLeft + realMiddle + realRight;
+            println("result:" + result);
+        } catch (Exception e) {
+            println("module:plugins: [" + "" + "] write failed!");
         }
-        if (interval < 0) {
-            interval = Math.abs(interval);
-        }
-        return interval;
     }
 }

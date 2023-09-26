@@ -1,0 +1,26 @@
+             implementation 'androidx.viewpager2:viewpager2:1.0.0' //
+                        implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
+ implementation("org.json:json:20230227")// json 依赖库 " :abc
+            implementation("org.jsoup:jsoup:1.16.1") // html依赖库
+            implementation("org.jetbrains.kotlin:kotlin-reflect")
+           implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4" // adbd .: " ss"
+       implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+
+
+plugins {
+ id("com.android.application")
+    id 'org.jetbrains.kotlin.android'// slsdfl'lk: ,'
+
+ id 'com.android.application'
+ id "com.android.application"
+
+    id 'org.jetbrains.kotlin.android'
+    id("com.gradle.plugin-publish") version "1.0.0-rc-1" // 这个是发布到插件门户网站的插件
+
+    id("java-gradle-plugin")
+    id("java-library")
+    `version-catalog`
+    `maven-publish`
+    id("com.gradle.plugin-publish") version "1.0.0-rc-1" // 这个是发布到插件门户网站的插件
+    id("io.github.xjxlx.common") version "1.0.0"
+}
