@@ -298,10 +298,12 @@ public class GradleUtil {
                 String implementationContent = splitImplementation[1].trim();
 
                 // 获取右侧去除括号的数据
+                flag = implementationContent.startsWith("(");
+
+                // 如果是（ 就跳过第一个数据开始截取
                 String allRight = "";
-                if (implementationContent.startsWith("(")) {
+                if (flag) {
                     allRight = implementationContent.substring(1);
-                    flag = true;
                 } else {
                     allRight = implementationContent;
                 }
@@ -314,6 +316,7 @@ public class GradleUtil {
 
                 // 开始分割
                 String[] splitType = implementationContent.split(type);
+                String middleLeft = splitType[0];
                 String tempMiddle = splitType[1];
                 String[] splitVersion = tempMiddle.split(":");
                 group = splitVersion[0];
@@ -321,7 +324,7 @@ public class GradleUtil {
 
                 // 这里中间长度加2的原因是因为tempMiddle是被type分割出来的，分割的时候，两边的type都会被清除掉，
                 // 所以这个要加上分割的字符串长度
-                realRight = implementationContent.substring(tempMiddle.length() + type.length() * 2);
+                realRight = implementationContent.substring(middleLeft.length() + tempMiddle.length() + type.length() * 2);
 
                 String versions = "";
                 for (int i = 0; i < mListLibs.size(); i++) {
@@ -340,9 +343,9 @@ public class GradleUtil {
                         libsName = libsName.replace("-", ".");
                     }
                     if (flag) {
-                        realMiddle = "libs." + libsName;
+                        realMiddle = middleLeft + "libs." + libsName;
                     } else {
-                        realMiddle = "(libs." + libsName + ")";
+                        realMiddle = middleLeft + "libs." + libsName + ")";
                     }
                     result = realLeft + realMiddle + realRight;
                     println("2: result:[" + result + "]");
