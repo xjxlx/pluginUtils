@@ -136,7 +136,7 @@ public class GradleUtil {
                 }
             }
         }
-        //  changeGradleFile(new File("/Users/XJX/AndroidStudioProjects/plugins/pluginUtil/src/main/java/com/plugin/utils/Test2.txt"));
+        //  changeGradleFile(new File("/Users/XJX/AndroidStudioProjects/plugins/pluginUtil/src/main/java/com/plugin/utils/TestData.txt"));
     }
 
     /**
@@ -393,6 +393,8 @@ public class GradleUtil {
             String tempContent = split[1];
             String allLeft = tempLeft + type + tempContent;
             realRight = reads.replace(allLeft, "");
+            // remove "
+            realRight = realRight.substring(1);
 
             // check version
             if (realRight.contains(VERSION)) {
