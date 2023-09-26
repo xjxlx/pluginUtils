@@ -28,7 +28,6 @@ public class GradleUtil {
     private boolean mGradleAnnotate = true;
 
     private static final String SUPPRESS = "@Suppress(\"DSL_SCOPE_VIOLATION\")";
-    private static final String CLASSPATH = "classpath";
     private static final String PLUGINS = "plugins";
     private static final String ID = "id";
     private static final String IMPLEMENTATION = "implementation";
@@ -153,9 +152,6 @@ public class GradleUtil {
                                 mRootListContent.add(i, SUPPRESS);
                             }
                         }
-                    } else if (trim.startsWith(CLASSPATH)) {
-                        String classPath = replaceClassPath(item);
-                        mRootListContent.set(i, classPath);
                     }
                 }
 
@@ -497,90 +493,4 @@ public class GradleUtil {
         }
         return result;
     }
-
-
-    private String replaceClassPath(String data) {
-        String result = data;
-        try {
-            if (data.contains(":")) {
-                String type = "";
-                boolean flag = false;
-                String group = "";
-                String name = "";
-
-                String realLeft = "";
-                String realMiddle = "";
-                String realRight = "";
-
-                //    implementation("org.json:json:20230227")// json 依赖库 " :abc
-                //    implementation("org.jsoup:jsoup:1.16.1") // html依赖库
-                //    implementation("org.jetbrains.kotlin:kotlin-reflect")
-
-                // 1:确定是用什么进行分割的
-                String[] splitImplementation = data.split(CLASSPATH);
-                realLeft = splitImplementation[0] + CLASSPATH;
-                String implementationContent = splitImplementation[1].trim();
-
-                // 获取右侧去除括号的数据
-                flag = implementationContent.startsWith("(");
-
-                // 如果是（ 就跳过第一个数据开始截取
-                String allRight = "";
-                if (flag) {
-                    allRight = implementationContent.substring(1);
-                } else {
-                    allRight = implementationContent;
-                }
-                String allRightTrim = allRight.trim();
-                if (allRightTrim.startsWith("'")) {
-                    type = "'";
-                } else if (allRightTrim.startsWith("\"")) {
-                    type = "\"";
-                }
-
-                // 开始分割
-                String[] splitType = implementationContent.split(type);
-                String middleLeft = splitType[0];
-                String tempMiddle = splitType[1];
-                String[] splitVersion = tempMiddle.split(":");
-                group = splitVersion[0];
-                name = splitVersion[1];
-
-                // 这里中间长度加2的原因是因为tempMiddle是被type分割出来的，分割的时候，两边的type都会被清除掉，
-                // 所以这个要加上分割的字符串长度
-                realRight = implementationContent.substring(middleLeft.length() + tempMiddle.length() + type.length() * 2);
-
-                String versions = "";
-                for (int i = 0; i < mListLibs.size(); i++) {
-                    String line = mListLibs.get(i);
-                    if (line.contains(group) && line.contains(name)) {
-                        versions = line;
-                        break;
-                    }
-                }
-
-                if (!versions.equals("")) {
-                    println("1：找到了对应的classpath属性：" + versions);
-                    // 取出libs.version.name
-                    String libsName = versions.split("=")[0].trim();
-                    if (libsName.contains("-")) {
-                        libsName = libsName.replace("-", ".");
-                    }
-                    if (flag) {
-                        realMiddle = middleLeft + "libs." + libsName;
-                    } else {
-                        realMiddle = middleLeft + "libs." + libsName + ")";
-                    }
-                    result = realLeft + realMiddle + realRight;
-                    println("2: result:[" + result + "]");
-                } else {
-                    println("1：找不到对应的classpath属性：" + group + "-" + name);
-                }
-            }
-        } catch (Exception exception) {
-            println("写入classpath属性失败：" + exception.getMessage());
-        }
-        return result;
-    }
-
 }
