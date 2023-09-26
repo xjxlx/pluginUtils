@@ -1,2 +1,0 @@
-    id("com.android.application") // abs
-    id("org.jetbrains.kotlin.android")

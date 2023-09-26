@@ -130,14 +130,13 @@ public class GradleUtil {
                             println("当前的module:" + name);
                             ModuleType moduleType = new ModuleType(buildGradle, buildGradle.getName().endsWith(".kts"));
                             mListModel.add(moduleType);
-                            // changeGradleFile(moduleType.getModel());
+                            changeGradleFile(moduleType.getModel());
                         }
                     }
                 }
             }
         }
-
-        changeGradleFile(new File("/Users/XJX/AndroidStudioProjects/plugins/pluginUtil/src/main/java/com/plugin/utils/Test2.txt"));
+        //  changeGradleFile(new File("/Users/XJX/AndroidStudioProjects/plugins/pluginUtil/src/main/java/com/plugin/utils/Test2.txt"));
     }
 
     /**
@@ -244,19 +243,27 @@ public class GradleUtil {
                 mListContent.add(0, SUPPRESS);
             }
 
-            for (String content : mListContent) {
+            for (int i = 0; i < mListContent.size(); i++) {
+                String content = mListContent.get(i);
                 String trim = content.trim();
-                if (trim.startsWith("id")) {
+                if (trim.startsWith(ID)) {
                     // 3:替换 plugins
-                    // println("id: " + content);
-                    replaceModulePlugins(raf, content);
+                    println("id: " + content);
+                    String plugins = replaceModulePlugins(content);
+                    mListContent.set(i, plugins);
+
                 } else if (trim.startsWith(IMPLEMENTATION)) {
                     // 4:替换 implementation
                     println(IMPLEMENTATION + ":" + content);
-                    replaceModuleDependencies(raf, content);
-                } else {
-                    // raf.write((content + "\r\n").getBytes());
+                    String implementation = replaceModuleDependencies(content);
+                    mListContent.set(i, implementation);
                 }
+            }
+
+            // loop write data
+            for (String item : mListContent) {
+                raf.write(item.getBytes());
+                raf.write("\r\n".getBytes());
             }
         } catch (Exception exception) {
             println("gradle 信息写入失败: " + exception.getMessage());
@@ -266,61 +273,66 @@ public class GradleUtil {
     /**
      * 替换dependencies具体的值
      *
-     * @param raf  操作文件读写流的对象
      * @param data 原始的数据
      */
-    private void replaceModuleDependencies(RandomAccessFile raf, String data) {
-        if (data.contains(":")) {
-            String type = "";
-            boolean flag = false;
-            String group = "";
-            String name = "";
+    private String replaceModuleDependencies(String data) {
+        String result = data;
+        try {
+            if (data.contains(":")) {
+                String type = "";
+                boolean flag = false;
+                String group = "";
+                String name = "";
 
-            String realLeft = "";
-            String realMiddle = "";
-            String realRight = "";
-            String result = "";
+                String realLeft = "";
+                String realMiddle = "";
+                String realRight = "";
 
-            //    implementation("org.json:json:20230227")// json 依赖库 " :abc
-            //    implementation("org.jsoup:jsoup:1.16.1") // html依赖库
-            //    implementation("org.jetbrains.kotlin:kotlin-reflect")
+                //    implementation("org.json:json:20230227")// json 依赖库 " :abc
+                //    implementation("org.jsoup:jsoup:1.16.1") // html依赖库
+                //    implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-            // 1:确定是用什么进行分割的
-            String[] splitImplementation = data.split(IMPLEMENTATION);
-            realLeft = splitImplementation[0] + IMPLEMENTATION;
-            String implementationContent = splitImplementation[1].trim();
+                // 1:确定是用什么进行分割的
+                String[] splitImplementation = data.split(IMPLEMENTATION);
+                realLeft = splitImplementation[0] + IMPLEMENTATION;
+                String implementationContent = splitImplementation[1].trim();
 
-            // 获取右侧去除括号的数据
-            String allRight = "";
-            if (implementationContent.startsWith("(")) {
-                allRight = implementationContent.substring(1, implementationContent.length());
-                flag = true;
-            } else {
-                allRight = implementationContent;
-            }
-            String allRightTrim = allRight.trim();
-            if (allRightTrim.startsWith("'")) {
-                type = "'";
-            } else if (allRightTrim.startsWith("\"")) {
-                type = "\"";
-            }
+                // 获取右侧去除括号的数据
+                String allRight = "";
+                if (implementationContent.startsWith("(")) {
+                    allRight = implementationContent.substring(1);
+                    flag = true;
+                } else {
+                    allRight = implementationContent;
+                }
+                String allRightTrim = allRight.trim();
+                if (allRightTrim.startsWith("'")) {
+                    type = "'";
+                } else if (allRightTrim.startsWith("\"")) {
+                    type = "\"";
+                }
 
-            // 开始分割
-            String[] splitType = implementationContent.split(type);
-            String tempMiddle = splitType[1];
-            String[] splitVersion = tempMiddle.split(":");
-            group = splitVersion[0];
-            name = splitVersion[1];
+                // 开始分割
+                String[] splitType = implementationContent.split(type);
+                String tempMiddle = splitType[1];
+                String[] splitVersion = tempMiddle.split(":");
+                group = splitVersion[0];
+                name = splitVersion[1];
 
-            // 这里中间长度加2的原因是因为tempMiddle是被type分割出来的，分割的时候，两边的type都会被清除掉，
-            // 所以这个要加上分割的字符串长度
-            realRight = implementationContent.substring(tempMiddle.length() + type.length() * 2, implementationContent.length());
+                // 这里中间长度加2的原因是因为tempMiddle是被type分割出来的，分割的时候，两边的type都会被清除掉，
+                // 所以这个要加上分割的字符串长度
+                realRight = implementationContent.substring(tempMiddle.length() + type.length() * 2);
 
-            String versions = "";
-            for (int i = 0; i < mListLibs.size(); i++) {
-                String line = mListLibs.get(i);
-                if (line.contains(group) && line.contains(name)) {
-                    versions = line;
+                String versions = "";
+                for (int i = 0; i < mListLibs.size(); i++) {
+                    String line = mListLibs.get(i);
+                    if (line.contains(group) && line.contains(name)) {
+                        versions = line;
+                        break;
+                    }
+                }
+
+                if (!versions.equals("")) {
                     println("1：找到了对应的implementation属性：" + versions);
                     // 取出libs.version.name
                     String libsName = versions.split("=")[0].trim();
@@ -334,29 +346,29 @@ public class GradleUtil {
                     }
                     result = realLeft + realMiddle + realRight;
                     println("2: result:[" + result + "]");
-                    break;
+                } else {
+                    println("1：找不到对应的implementation属性：" + group + "-" + name);
                 }
             }
-            if (TextUtils.isEmpty(versions)) {
-                println("1：找不到对应的implementation属性：" + group + "-" + name);
-            }
+        } catch (Exception exception) {
+            println("写入implementation属性失败：" + exception.getMessage());
         }
+        return result;
     }
 
     /**
      * 替换module的plugins内容
      *
-     * @param raf   随机读写流对象
      * @param reads plugins的内容
      */
-    private void replaceModulePlugins(RandomAccessFile raf, String reads) {
+    private String replaceModulePlugins(String reads) {
+        String result = reads;
         try {
             String type = "";// 分隔符，要么是"要么是'
             boolean flag = false;
             String realLeft = "";
             String realMiddle = "";
             String realRight = "";
-            String result = "";
 
             // 先确认是用什么进行分割的，比如：' 或者 "
             String[] splitID = reads.split(ID);
@@ -368,17 +380,11 @@ public class GradleUtil {
             if (pluginsContent.startsWith("(")) {
                 flag = true;
                 pluginsContent = pluginsContent.replace("(", "");
-                if (pluginsContent.startsWith("'")) {
-                    type = "'";
-                } else if (pluginsContent.startsWith("\"")) {
-                    type = "\"";
-                }
-            } else {
-                if (pluginsContent.startsWith("'")) {
-                    type = "'";
-                } else if (pluginsContent.startsWith("\"")) {
-                    type = "\"";
-                }
+            }
+            if (pluginsContent.startsWith("'")) {
+                type = "'";
+            } else if (pluginsContent.startsWith("\"")) {
+                type = "\"";
             }
 
             // 使用指定的类型去分割字符串
@@ -406,21 +412,37 @@ public class GradleUtil {
                 realRight = realRight.replace("\"" + versionCode + "\"", "");
             }
 
-
-            if (tempContent.contains("-")) {
-                tempContent = tempContent.replace("-", ".");
+            // 查找plugins属性
+            boolean pluginLineFlag = false;
+            String pluginsTemp = tempContent.replace(".", "-");
+            for (int i = 0; i < mListPlugins.size(); i++) {
+                String pluginSplit = mListPlugins.get(i).split("=")[0].trim();
+                if (pluginsTemp.equals(pluginSplit)) {
+                    pluginLineFlag = true;
+                    break;
+                }
             }
-            if (!flag) {
-                realMiddle = "(libs.plugins." + tempContent + ")";
+
+            if (pluginLineFlag) {
+                println("找到plugin属性：" + tempContent);
+                if (tempContent.contains("-")) {
+                    tempContent = tempContent.replace("-", ".");
+                }
+
+                if (!flag) {
+                    realMiddle = "(libs.plugins." + tempContent + ")";
+                } else {
+                    realMiddle = "libs.plugins." + tempContent;
+                }
+
+                realLeft = tempLeft.replace(ID, "alias");
+                result = realLeft + realMiddle + realRight;
             } else {
-                realMiddle = "libs.plugins." + tempContent;
+                println("找不到plugin属性：" + tempContent);
             }
-
-            realLeft = tempLeft.replace(ID, "alias");
-            result = realLeft + realMiddle + realRight;
-            println("result:" + result);
         } catch (Exception e) {
             println("module:plugins: [" + "" + "] write failed!");
         }
+        return result;
     }
 }
