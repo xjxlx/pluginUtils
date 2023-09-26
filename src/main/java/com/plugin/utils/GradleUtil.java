@@ -26,10 +26,8 @@ public class GradleUtil {
     private File mSettingsGradle = null;
     private File mLocalLibs = null;
     private boolean mGradleAnnotate = false;
-    private final List<ModuleType> mListModel = new ArrayList<>();
 
     private static final String SUPPRESS = "@Suppress(\"DSL_SCOPE_VIOLATION\")";
-    private static final String PLUGINS = "plugins";
     private static final String IMPLEMENTATION = "implementation";
     private static final String ID = "id";
     private static final String VERSION = "version";
@@ -115,7 +113,6 @@ public class GradleUtil {
             List<String> settingContent = mFileUtil.readFile(mSettingsGradle);
             // 过滤引入include的信息，就是model的名字
             List<String> listInclude = mFileUtil.filterStart(settingContent, "include");
-            mListModel.clear();
 
             // 获取module的名字，然后批量进行gradle文件修改
             for (String name : filterModel(listInclude)) {
@@ -129,7 +126,6 @@ public class GradleUtil {
                         if (buildGradle != null && buildGradle.exists()) {
                             println("当前的module:" + name);
                             ModuleType moduleType = new ModuleType(buildGradle, buildGradle.getName().endsWith(".kts"));
-                            mListModel.add(moduleType);
                             changeGradleFile(moduleType.getModel());
                         }
                     }
@@ -137,6 +133,10 @@ public class GradleUtil {
             }
         }
         //  changeGradleFile(new File("/Users/XJX/AndroidStudioProjects/plugins/pluginUtil/src/main/java/com/plugin/utils/TestData.txt"));
+    }
+
+    public void changeSettings() {
+
     }
 
     /**
@@ -239,8 +239,10 @@ public class GradleUtil {
 
         try (RandomAccessFile raf = new RandomAccessFile(gradlePath, "rw")) {
             // 2:添加注解头
-            if (!mListContent.contains(SUPPRESS)) {
-                mListContent.add(0, SUPPRESS);
+            if (mGradleAnnotate) {
+                if (!mListContent.contains(SUPPRESS)) {
+                    mListContent.add(0, SUPPRESS);
+                }
             }
 
             for (int i = 0; i < mListContent.size(); i++) {
