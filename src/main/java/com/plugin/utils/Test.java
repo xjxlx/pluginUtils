@@ -14,7 +14,7 @@ public class Test {
 
         File rootFile = new File(root);
         gradleUtil.initGradle(rootFile);
-        // gradleUtil.writeGradleToLocal(urlPath, new File(rootFile, "gradle" + File.separator + "libs2.versions.toml"));
+        gradleUtil.writeGradleToLocal(urlPath, new File(rootFile, "gradle" + File.separator + "libs2.versions.toml"));
         // gradleUtil.changeModules();
 
         gradleUtil.changeRootGradle();
