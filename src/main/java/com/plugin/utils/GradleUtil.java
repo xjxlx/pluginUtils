@@ -310,7 +310,7 @@ public class GradleUtil {
                 String line = mListLibs.get(i);
                 if (line.contains(group) && line.contains(name)) {
                     versions = line;
-                    println("1：找到了对应的属性：" + versions);
+                    println("1：找到了对应的implementation属性：" + versions);
                     // 取出libs.version.name
                     String libsName = versions.split("=")[0].trim();
                     if (libsName.contains("-")) {
@@ -327,7 +327,7 @@ public class GradleUtil {
                 }
             }
             if (TextUtils.isEmpty(versions)) {
-                println("1：找不到对应的属性：" + group + "-" + name);
+                println("1：找不到对应的implementation属性：" + group + "-" + name);
             }
         }
     }
