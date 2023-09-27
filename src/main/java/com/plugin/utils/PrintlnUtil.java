@@ -1,6 +1,6 @@
 package com.plugin.utils;
 
-public class SystemUtil {
+public class PrintlnUtil {
     public static void println(String content) {
         System.out.println(content);
     }

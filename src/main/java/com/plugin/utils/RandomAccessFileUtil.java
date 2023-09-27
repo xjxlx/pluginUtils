@@ -1,11 +1,10 @@
 package com.plugin.utils;
 
-import static com.plugin.utils.SystemUtil.println;
+import static com.plugin.utils.PrintlnUtil.println;
 
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.List;
 
 public class RandomAccessFileUtil {
 

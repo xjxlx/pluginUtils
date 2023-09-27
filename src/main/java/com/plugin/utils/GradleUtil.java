@@ -1,6 +1,6 @@
 package com.plugin.utils;
 
-import static com.plugin.utils.SystemUtil.println;
+import static com.plugin.utils.PrintlnUtil.println;
 
 import com.plugin.utils.bean.ModuleType;
 
