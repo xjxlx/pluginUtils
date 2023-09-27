@@ -2,8 +2,6 @@ package com.plugin.utils;
 
 import static com.plugin.utils.PrintlnUtil.println;
 
-import com.plugin.utils.bean.ModuleType;
-
 import org.gradle.api.Project;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -120,8 +118,7 @@ public class GradleUtil {
                         File buildGradle = mFileUtil.filterStart(moduleFiles, "build.gradle");
                         if (buildGradle != null && buildGradle.exists()) {
                             println("当前的module:" + name);
-                            ModuleType moduleType = new ModuleType(buildGradle, buildGradle.getName().endsWith(".kts"));
-                            changeModuleGradleFile(moduleType.getModel());
+                            changeModuleGradleFile(buildGradle);
                         }
                     }
                 }
