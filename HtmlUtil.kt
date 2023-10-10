@@ -24,7 +24,7 @@ object HtmlUtil {
                         htmlList.add(content)
                         htmlList.add("\r\n")
                     }
-                    println("html write success! \r\npath:$url")
+                    println("html-path:$url")
                     break
                 }
             }
