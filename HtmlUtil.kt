@@ -1,4 +1,4 @@
-package com.android.helper.utils
+package utils
 
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -24,7 +24,7 @@ object HtmlUtil {
                         htmlList.add(content)
                         htmlList.add("\r\n")
                     }
-                    println("path:$url \r\nhtml write success!")
+                    println("html write success! \r\npath:$url")
                     break
                 }
             }

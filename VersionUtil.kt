@@ -1,4 +1,4 @@
-package com.android.helper.utils
+package utils
 
 import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.Project

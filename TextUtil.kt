@@ -1,4 +1,4 @@
-package com.android.helper.utils
+package utils
 
 object TextUtil {
 
