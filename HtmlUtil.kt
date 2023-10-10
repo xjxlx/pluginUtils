@@ -25,7 +25,6 @@ object HtmlUtil {
                         htmlList.add("\r\n")
                     }
                     println("html-path:$url")
-                    println("test3")
                     break
                 }
             }
