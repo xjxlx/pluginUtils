@@ -1,4 +1,4 @@
-package com.plugin.utils
+package com.android.helper.utils
 
 import org.gradle.api.provider.Provider
 
