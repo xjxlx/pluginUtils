@@ -1,4 +1,4 @@
-package com.plugin.common.utils
+package com.plugin.utils
 
 import java.io.File
 import java.io.FileOutputStream
