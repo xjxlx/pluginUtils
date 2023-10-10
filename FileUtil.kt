@@ -1,5 +1,6 @@
 package utils
 
+import org.gradle.api.Project
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
@@ -81,5 +82,13 @@ object FileUtil {
         } catch (e: Exception) {
             println("writeFile failed：" + e.message)
         }
+    }
+
+    /**
+     * @param project 使用插件的project
+     * @return 获取当前使用插件的model的build.gradle的文件
+     */
+    fun getModelGradlePath(project: Project): File? {
+        return project.buildscript.sourceFile
     }
 }
