@@ -3,9 +3,11 @@ package utils
 import org.gradle.api.Project
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.jar.JarFile
 
 object FileUtil {
 
@@ -84,11 +86,54 @@ object FileUtil {
         }
     }
 
+    fun writeFile(outFile: File, intPutStream: InputStream) {
+        try {
+            var len: Int
+            val byte = ByteArray(1024)
+            FileOutputStream(outFile).use { out ->
+                while (intPutStream.read(byte)
+                        .also { len = it } != -1) {
+                    out.write(byte, 0, len)
+                }
+            }
+            intPutStream.close()
+        } catch (e: Exception) {
+            println("writeFile failed:" + e.message)
+        }
+    }
+
     /**
      * @param project 使用插件的project
      * @return 获取当前使用插件的model的build.gradle的文件
      */
     fun getModelGradlePath(project: Project): File? {
         return project.buildscript.sourceFile
+    }
+
+    /**
+     * @param cls 指定的类名
+     * @return 返回jar包中类的本地位置
+     */
+    fun getFilePathForJar(cls: Class<*>): String? {
+        return cls.protectionDomain.codeSource.location.file
+    }
+
+    /**
+     * @param filePath jar包中文件的具体路径
+     * @return 返回jar包中指定文件的inputSteam
+     */
+    fun getInputStreamForJar(jarPath: String, filePath: String): InputStream? {
+        var inputStream: InputStream? = null
+        val jarFile = JarFile(File(jarPath))
+        val entries = jarFile.entries()
+        while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+            val entryName = entry.name
+            if (!entry.isDirectory && entryName.equals(filePath)) {
+                inputStream = jarFile.getInputStream(entry)
+                break
+            }
+        }
+        return inputStream
     }
 }
