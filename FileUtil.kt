@@ -96,7 +96,6 @@ object FileUtil {
                     out.write(byte, 0, len)
                 }
             }
-            intPutStream.close()
         } catch (e: Exception) {
             println("writeFile failed:" + e.message)
         }
