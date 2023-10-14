@@ -1,6 +1,6 @@
 package utils
 
 object Config {
-    const val project_group = "com.github.jitpack"
-    const val project_version = "1.0"
+    const val PROJECT_GROUP = "com.github.jitpack"
+    const val PROJECT_VERSION = "1.0"
 }
