@@ -6,10 +6,17 @@ import org.json.JSONObject
 import org.jsoup.Jsoup
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.io.RandomAccessFile
 import java.nio.charset.StandardCharsets
 
-class GradleUtil {
+object GradleUtil2 {
+
+    private const val SUPPRESS = "@Suppress(\"DSL_SCOPE_VIOLATION\")"
+    private const val PLUGINS = "plugins"
+    private const val ID = "id"
+    private const val IMPLEMENTATION = "implementation"
+    private const val VERSION = "version"
 
     private val mRandomAccessFileUtil = RandomAccessFileUtil()
     private var mRootDir: File? = null
@@ -21,22 +28,95 @@ class GradleUtil {
     private val mModuleListContent = ArrayList<String>()
     private val mRootListContent = ArrayList<String>()
 
-    fun initGradle(rootDir: File?) {
+    /**
+     * 获取本地jar包中的文件信息
+     */
+    fun getJarInputStream(clazz: Class<*>): InputStream? {
+        // 1：获取jar包中路径
+        FileUtil.getFilePathForJar(clazz)
+            ?.let { filePathForJar ->
+                // 2：读取jar包中指定的文件内容
+                return FileUtil.getInputStreamForJar(filePathForJar, "libs.versions.toml")
+            }
+        return null
+    }
+
+    fun initGradle(project: Project) {
+        // 在低于8.0的时候，需要再gradle文件内写入注解 @Suppress("DSL_SCOPE_VIOLATION")
+        if (project.gradle.gradleVersion.toFloat() < 8.0f) {
+            mGradleAnnotate = true
+        }
+
         println("gradle init !")
-        mRootDir = rootDir
+        mRootDir = project.rootDir
 
         // 读取本地libs.version.toml文件信息
         readLibsVersions()
     }
 
-    fun initGradle(project: Project) {
-        val gradleVersion = project.gradle.gradleVersion.toFloat()
-        if (gradleVersion < 8.0f) {
-            // 在低于8.0的时候，需要再gradle文件内写入注解 @Suppress("DSL_SCOPE_VIOLATION")
-            mGradleAnnotate = true
+    /**
+     * 读取本地libs.versions.toml文件信息
+     */
+    private fun readLibsVersions() {
+        if (mLocalLibs == null) {
+            mLocalLibs = File(mRootDir, "gradle/libs.versions.toml")
         }
-        initGradle(mRootDir)
+
+        if (!mLocalLibs!!.exists()) {
+            println("本地的libs.version.toml文件不存在！")
+            return
+        }
+
+        if (mLocalLibs!!.length() == 0L) {
+            println("本地的libs.version.toml内容为空！")
+            return
+        }
+
+        try {
+            RandomAccessFile(mLocalLibs, "r").use { rafGradle ->
+                var libsFlag = false
+                var pluginsFlag = false
+                mListLibs.clear()
+                mListPlugins.clear()
+                while (rafGradle.filePointer < rafGradle.length()) {
+                    val readLine = rafGradle.readLine()
+                    if (!TextUtils.isEmpty(readLine)) {
+                        val versionContent = String(readLine.toByteArray(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8)
+                        if (libsFlag) {
+                            if (versionContent.startsWith("[plugins]")) {
+                                libsFlag = false
+                            }
+                        }
+                        // write libs
+                        if (libsFlag) {
+                            mListLibs.add(versionContent)
+                        }
+                        if (versionContent.startsWith("[libraries]")) {
+                            libsFlag = true
+                        }
+
+                        // write plugins
+                        if (pluginsFlag) {
+                            if (versionContent.startsWith("[bundles]")) {
+                                pluginsFlag = false
+                            }
+                        }
+                        if (pluginsFlag) {
+                            mListPlugins.add(versionContent)
+                        }
+                        if (versionContent.startsWith("[plugins]")) {
+                            pluginsFlag = true
+                        }
+                    }
+                }
+                println("读取library成功 :$mListLibs")
+                println("读取plugins成功 :$mListPlugins")
+            }
+        } catch (exception: Exception) {
+            println("读取library失败 :" + exception.message)
+        }
     }
+
     /**
      * @param url       服务器上libs文件的地址
      * @param localLibs 写入项目中文件的地址，一般是在项目中.gradle文件下面，这里交给用户去自己定义
@@ -83,7 +163,7 @@ class GradleUtil {
         }
     }
 
-    private fun changeModules() {
+    fun changeModules() {
         // 2：获取project的目录信息，保活settings、module、library...
         mRootDir?.listFiles()
             ?.let { rootFiles ->
@@ -192,72 +272,11 @@ class GradleUtil {
     }
 
     /**
-     * 读取云端libs.versions.toml文件信息
-     */
-    private fun readLibsVersions() {
-        // 设置默认的本地文件libs地址
-        if (mLocalLibs == null) {
-            mLocalLibs = File(mRootDir, "gradle/libs.versions.toml")
-        }
-        if (!mLocalLibs!!.exists()) {
-            println("本地的libs.version.toml文件不存在！")
-            return
-        }
-        if (mLocalLibs!!.length() == 0L) {
-            println("本地的libs.version.toml内容为空！")
-            return
-        }
-        try {
-            RandomAccessFile(mLocalLibs, "r").use { rafGradle ->
-                var libsFlag = false
-                var pluginsFlag = false
-                mListLibs.clear()
-                mListPlugins.clear()
-                while (rafGradle.filePointer < rafGradle.length()) {
-                    val readLine = rafGradle.readLine()
-                    if (!TextUtils.isEmpty(readLine)) {
-                        val versionContent = String(readLine.toByteArray(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8)
-                        if (libsFlag) {
-                            if (versionContent.startsWith("[plugins]")) {
-                                libsFlag = false
-                            }
-                        }
-                        // write libs
-                        if (libsFlag) {
-                            mListLibs.add(versionContent)
-                        }
-                        if (versionContent.startsWith("[libraries]")) {
-                            libsFlag = true
-                        }
-
-                        // write plugins
-                        if (pluginsFlag) {
-                            if (versionContent.startsWith("[bundles]")) {
-                                pluginsFlag = false
-                            }
-                        }
-                        if (pluginsFlag) {
-                            mListPlugins.add(versionContent)
-                        }
-                        if (versionContent.startsWith("[plugins]")) {
-                            pluginsFlag = true
-                        }
-                    }
-                }
-                println("读取library成功 :$mListLibs")
-                println("读取plugins成功 :$mListPlugins")
-            }
-        } catch (exception: Exception) {
-            println("读取library失败 :" + exception.message)
-        }
-    }
-
-    /**
      * 读取gradle文件信息，进行匹配修改
      *
      * @param gradle 对应的gradle文件
      */
-    fun changeModuleGradleFile(gradle: File) {
+    private fun changeModuleGradleFile(gradle: File) {
         // 读取所有的字符串存入集合
         mModuleListContent.clear()
         val gradlePath = gradle.absolutePath
@@ -486,13 +505,5 @@ class GradleUtil {
             println("module:plugins: [" + "" + "] write failed!")
         }
         return result
-    }
-
-    companion object {
-        private const val SUPPRESS = "@Suppress(\"DSL_SCOPE_VIOLATION\")"
-        private const val PLUGINS = "plugins"
-        private const val ID = "id"
-        private const val IMPLEMENTATION = "implementation"
-        private const val VERSION = "version"
     }
 }
