@@ -7,11 +7,11 @@ object Config {
 
         const val COMMON = "common"
         const val PUBLISH = "publish"
-        const val VERSION = "version"
+        const val CATALOG = "catalog"
 
         const val COMMON_CODE = "1.0.0"
         const val PUBLISH_CODE = "1.0.0"
-        const val VERSION_CODE = "1.0.0"
+        const val CATALOG_CODE = "1.0.0"
     }
 
     object Project {
