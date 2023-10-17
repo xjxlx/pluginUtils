@@ -15,7 +15,7 @@ object Config {
     }
 
     object Project {
-        const val GROUP = "com.github.jitpack"
+        const val JITPACK = "com.github.jitpack"
         const val VERSION = "1.0"
 
         const val PUBLISH_PLUGIN_ID = "maven-publish"
