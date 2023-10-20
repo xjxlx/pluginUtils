@@ -1,3 +1,0 @@
-[submodule "pluginConfig"]
-	path = "config"
-	url = git@github.com:xjxlx/pluginConfig.git
