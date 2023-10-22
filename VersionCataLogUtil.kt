@@ -6,97 +6,135 @@ import java.io.FileOutputStream
 
 class VersionCataLogUtil {
 
-    private var mSettingList = mutableListOf<String>()
-
+    private val mListContent = arrayListOf<String>()
+    private val pluginManagement = "pluginManagement"
     private val dependencyResolutionManagement = "dependencyResolutionManagement"
     private val repositoriesMode = "repositoriesMode"
     private val repositories = "repositories"
 
     private val mavenPublicTag = "https://maven.aliyun.com/repository/public"
-    private val mavenPublicReleaseTag =
-        "https://packages.aliyun.com/maven/repository/2131155-release-wH01IT/"
-    private val mavenPublicSnapshotTag =
-        "https://packages.aliyun.com/maven/repository/2131155-snapshot-mh62BC/"
+    private val mavenPublicReleaseTag = "https://packages.aliyun.com/maven/repository/2131155-release-wH01IT/"
+    private val mavenPublicSnapshotTag = "https://packages.aliyun.com/maven/repository/2131155-snapshot-mh62BC/"
     private val mavenCatalog = "versionCatalogs"
 
     fun write(project: Project) {
         val settingsFile = project.rootDir.listFiles()
             ?.find { it.isFile && it.name.contains("settings") }
-
-        var dependencyResolutionManagementFlag = false
-        var repositoriesFlag = false
-
         settingsFile?.let {
             FileUtil.readFile(settingsFile)
                 ?.let { settingsList ->
-                    val mavenPublicTagFlag = settingsList.any { it.contains(mavenPublicTag) }
-                    val mavenPublicReleaseTagFlag =
-                        settingsList.any { it.contains(mavenPublicReleaseTag) }
-                    val mavenPublicSnapshotTagFlag =
-                        settingsList.any { it.contains(mavenPublicSnapshotTag) }
-                    var catalogFlag =
-                        settingsList.any { it.contains(mavenCatalog) }
+                    var dependencyResolutionManagementStartFlag = false
+                    var repositoriesStartFlag = false
+
+                    var mavenPublicTagFlag = false
+                    var mavenPublicReleaseTagFlag = false
+                    var mavenPublicSnapshotTagFlag = false
+                    var catalogFlag = false
+
+                    var count = 0
+                    var tempIndex = 0
+                    var addCount = 0
+                    var addCountFlag = false
+
+                    settingsList.forEachIndexed { index, item ->
+                        val trim = item.trim()
+
+                        // 避免错误检测
+                        if (trim.startsWith(pluginManagement)) {
+                            dependencyResolutionManagementStartFlag = false
+                            repositoriesStartFlag = false
+                        }
+
+                        // 检测到了dependencyResolutionManagement标签
+                        if (trim.startsWith(dependencyResolutionManagement)) {
+                            dependencyResolutionManagementStartFlag = true
+                        }
+                        // 检测到了repositories标签
+                        if (dependencyResolutionManagementStartFlag) {
+                            if (trim.startsWith(repositories) && !trim.startsWith(repositoriesMode)) {
+                                repositoriesStartFlag = true
+                            }
+                        }
+
+                        if (repositoriesStartFlag) {
+                            if (!addCountFlag) {
+                                // 开始计算
+                                if (trim.contains("{") && trim.contains("}")) {
+                                    count = 0
+                                } else if (trim.contains("{")) {
+                                    count -= 1
+                                } else if (trim.contains("}")) {
+                                    count += 1
+                                }
+                                if (count >= 1) {
+                                    println("count:$count index:$index")
+                                    tempIndex = index
+                                    addCountFlag = true
+                                }
+                            }
+
+                            // 检测中央公共仓库
+                            if (!mavenPublicTagFlag) {
+                                mavenPublicTagFlag = trim.contains(mavenPublicTag)
+                            }
+                            // 检测用户信息-release
+                            if (!mavenPublicReleaseTagFlag) {
+                                mavenPublicReleaseTagFlag = trim.contains(mavenPublicReleaseTag)
+                            }
+                            // 检测用户信息-Snapshot
+                            if (!mavenPublicSnapshotTagFlag) {
+                                mavenPublicSnapshotTagFlag = trim.contains(mavenPublicSnapshotTag)
+                            }
+                            // 检测catalog
+                            if (!catalogFlag) {
+                                catalogFlag = trim.contains(mavenCatalog)
+                            }
+                        }
+                        mListContent.add(item)
+                        // println("item:$item count:$count")
+                    }
 
                     println("[mavenPublic]:$mavenPublicTagFlag")
                     println("[mavenPublicRelease]:$mavenPublicReleaseTagFlag")
                     println("[mavenPublicSnapshot]:$mavenPublicSnapshotTagFlag")
                     println("[catalog]:$catalogFlag")
 
-                    settingsList.forEach { item ->
-                        val trim = item.trim()
-                        // 在添加原始数据之前添加仓库地址
-                        println("item:$item")
-                        if (repositoriesFlag) {
-                            if (trim == "}") {
-                                // 1:添加中央控制仓库
-                                if (!mavenPublicTagFlag) {
-                                    mSettingList.add(ConfigCatalog.MAVEN_PUBLIC)
-                                }
+                    // 添加阿里云：用户信息 - snapshot
+                    if (!mavenPublicSnapshotTagFlag) {
+                        mListContent.add(tempIndex, ConfigCatalog.MAVEN_SNAPSHOT)
+                        addCount += 1
+                    }
+                    // 添加阿里云：用户信息 - release
+                    if (!mavenPublicReleaseTagFlag) {
+                        mListContent.add(tempIndex, ConfigCatalog.MAVEN_RELEASE)
+                        addCount += 1
+                    }
+                    // 添加中央控制仓库
+                    if (!mavenPublicTagFlag) {
+                        mListContent.add(tempIndex, ConfigCatalog.MAVEN_PUBLIC)
+                        addCount += 1
+                    }
 
-                                // 2：添加阿里云：用户信息 - release
-                                if (!mavenPublicReleaseTagFlag) {
-                                    mSettingList.add(ConfigCatalog.MAVEN_RELEASE)
-                                }
+                    // 3:添加catalog
+                    if (!catalogFlag) {
+                        mListContent.add(tempIndex + addCount + 1, ConfigCatalog.MAVEN_CATALOG)
+                    }
 
-                                // 2：添加阿里云：用户信息 - snapshot
-                                if (!mavenPublicSnapshotTagFlag) {
-                                    mSettingList.add(ConfigCatalog.MAVEN_SNAPSHOT)
-                                }
-                            }
-                        }
-                        mSettingList.add(item)
+                    // print content
+                    mListContent.forEach {
+                        println(it)
+                    }
 
-                        // 3:添加catalog
-                        if (repositoriesFlag && !catalogFlag) {
-                            mSettingList.add(ConfigCatalog.MAVEN_CATALOG)
-                            catalogFlag = true
-                        }
-
-                        // 检测到了dependencyResolutionManagement标签
-                        if (trim.startsWith(dependencyResolutionManagement)) {
-                            dependencyResolutionManagementFlag = true
-                        }
-
-                        // 检测到了repositories标签
-                        if (dependencyResolutionManagementFlag) {
-                            if (trim.startsWith(repositories) && !trim.startsWith(repositoriesMode)) {
-                                repositoriesFlag = true
+                    // write data
+                    if (settingsList.size != mListContent.size) {
+                        FileOutputStream(settingsFile).use {
+                            mListContent.forEach { item ->
+                                it.write(item.toByteArray())
+                                it.write("\r\n".toByteArray())
                             }
                         }
                     }
                 }
-
-//            mSettingList.forEach {
-//                println("item --->: $it")
-//            }
-
-            // write data
-            FileOutputStream(settingsFile).use {
-                mSettingList.forEach { item ->
-                    it.write(item.toByteArray())
-                    it.write("\r\n".toByteArray())
-                }
-            }
         }
     }
 }
