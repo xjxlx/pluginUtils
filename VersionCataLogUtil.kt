@@ -2,7 +2,6 @@ package utils
 
 import common.Catalog
 import org.gradle.api.Project
-import org.gradle.api.artifacts.VersionCatalog
 import java.io.FileOutputStream
 
 class VersionCataLogUtil {
@@ -17,6 +16,10 @@ class VersionCataLogUtil {
     private var repositoriesFlag = false
     private var catalogFlag = false
 
+    private val mavenPublicTag = "https://maven.aliyun.com/repository/public"
+    private val mavenPublicReleaseTag = "https://packages.aliyun.com/maven/repository/2131155-release-wH01IT/"
+    private val mavenPublicSnapshotTag = "https://packages.aliyun.com/maven/repository/2131155-snapshot-mh62BC/"
+
     fun write(project: Project) {
         val settingsFile = project.rootDir.listFiles()
             ?.find { it.isFile && it.name.contains("settings") }
@@ -24,6 +27,9 @@ class VersionCataLogUtil {
         settingsFile?.let {
             FileUtil.readFile(settingsFile)
                 ?.let { settingsList ->
+                    val mavenPublicTagFlag = settingsList.contains(mavenPublicTag)
+                    val mavenPublicReleaseTagFlag = settingsList.contains(mavenPublicReleaseTag)
+                    val mavenPublicSnapshotTagFlag = settingsList.contains(mavenPublicSnapshotTag)
 
                     settingsList.forEach { item ->
                         val trim = item.trim()
@@ -33,13 +39,19 @@ class VersionCataLogUtil {
                                 repositoriesFlag = false
 
                                 // 1:添加中央控制仓库
-                                mSettingList.add(Catalog.MAVEN_PUBLIC)
+                                if (!mavenPublicTagFlag) {
+                                    mSettingList.add(Catalog.MAVEN_PUBLIC)
+                                }
 
                                 // 2：添加阿里云：用户信息 - release
-                                mSettingList.add(Catalog.MAVEN_RELEASE)
+                                if (!mavenPublicReleaseTagFlag) {
+                                    mSettingList.add(Catalog.MAVEN_RELEASE)
+                                }
 
                                 // 2：添加阿里云：用户信息 - snapshot
-                                mSettingList.add(Catalog.MAVEN_SNAPSHOT)
+                                if (!mavenPublicSnapshotTagFlag) {
+                                    mSettingList.add(Catalog.MAVEN_SNAPSHOT)
+                                }
                                 catalogFlag = true
                             }
                         }
