@@ -1,6 +1,6 @@
 package utils
 
-import common.Config
+import common.Catalog
 import org.gradle.api.Project
 import java.io.FileOutputStream
 
@@ -17,50 +17,51 @@ class VersionCataLogUtil {
     private var catalogFlag = false
 
     fun write(project: Project) {
-        val settingsFile =
-            project.rootDir.listFiles()?.find { it.isFile && it.name.contains("settings") }
+        val settingsFile = project.rootDir.listFiles()
+            ?.find { it.isFile && it.name.contains("settings") }
 
         settingsFile?.let {
-            FileUtil.readFile(settingsFile)?.let { settingsList ->
+            FileUtil.readFile(settingsFile)
+                ?.let { settingsList ->
 
-                settingsList.forEach { item ->
-                    val trim = item.trim()
-                    // println("item:$item")
-                    if (repositoriesFlag) {
-                        if (trim == "}") {
-                            repositoriesFlag = false
+                    settingsList.forEach { item ->
+                        val trim = item.trim()
+                        // println("item:$item")
+                        if (repositoriesFlag) {
+                            if (trim == "}") {
+                                repositoriesFlag = false
 
-                            // 1:添加中央控制仓库
-                            // mSettingList.add(Config.VersionCatalog.MAVEN_PUBLIC)
+                                // 1:添加中央控制仓库
+                                // mSettingList.add(Config.VersionCatalog.MAVEN_PUBLIC)
 
-                            // 2：添加阿里云：用户信息 - release
-                            // mSettingList.add(Config.VersionCatalog.MAVEN_RELEASE)
+                                // 2：添加阿里云：用户信息 - release
+                                // mSettingList.add(Config.VersionCatalog.MAVEN_RELEASE)
 
-                            // 2：添加阿里云：用户信息 - snapshot
-                            // mSettingList.add(Config.VersionCatalog.MAVEN_SNAPSHOT)
-                            catalogFlag = true
+                                // 2：添加阿里云：用户信息 - snapshot
+                                // mSettingList.add(Config.VersionCatalog.MAVEN_SNAPSHOT)
+                                catalogFlag = true
+                            }
                         }
-                    }
-                    mSettingList.add(item)
+                        mSettingList.add(item)
 
-                    // 3:添加catalog
-                    if (catalogFlag) {
-                        mSettingList.add(Config.VersionCatalog.CATALOG)
-                        catalogFlag = false
-                    }
+                        // 3:添加catalog
+                        if (catalogFlag) {
+                            mSettingList.add(Catalog.MAVEN_CATALOG)
+                            catalogFlag = false
+                        }
 
-                    if (trim.startsWith(dependencyResolutionManagement)) {
-                        dependencyResolutionManagementFlag = true
-                    }
+                        if (trim.startsWith(dependencyResolutionManagement)) {
+                            dependencyResolutionManagementFlag = true
+                        }
 
-                    if (dependencyResolutionManagementFlag) {
-                        if (trim.startsWith(repositories) && !trim.startsWith(repositoriesMode)) {
-                            dependencyResolutionManagementFlag = false
-                            repositoriesFlag = true
+                        if (dependencyResolutionManagementFlag) {
+                            if (trim.startsWith(repositories) && !trim.startsWith(repositoriesMode)) {
+                                dependencyResolutionManagementFlag = false
+                                repositoriesFlag = true
+                            }
                         }
                     }
                 }
-            }
 
             // mSettingList.forEach {
             //     println("item - add: $it")
