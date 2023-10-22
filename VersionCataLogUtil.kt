@@ -2,6 +2,7 @@ package utils
 
 import common.Catalog
 import org.gradle.api.Project
+import org.gradle.api.artifacts.VersionCatalog
 import java.io.FileOutputStream
 
 class VersionCataLogUtil {
@@ -32,13 +33,13 @@ class VersionCataLogUtil {
                                 repositoriesFlag = false
 
                                 // 1:添加中央控制仓库
-                                // mSettingList.add(Config.VersionCatalog.MAVEN_PUBLIC)
+                                mSettingList.add(Catalog.MAVEN_PUBLIC)
 
                                 // 2：添加阿里云：用户信息 - release
-                                // mSettingList.add(Config.VersionCatalog.MAVEN_RELEASE)
+                                mSettingList.add(Catalog.MAVEN_RELEASE)
 
                                 // 2：添加阿里云：用户信息 - snapshot
-                                // mSettingList.add(Config.VersionCatalog.MAVEN_SNAPSHOT)
+                                mSettingList.add(Catalog.MAVEN_SNAPSHOT)
                                 catalogFlag = true
                             }
                         }
