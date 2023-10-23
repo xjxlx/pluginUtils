@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.jar.JarFile
+import kotlin.io.path.isRegularFile
 
 object FileUtil {
 
@@ -134,5 +135,19 @@ object FileUtil {
             }
         }
         return inputStream
+    }
+
+    /**
+     * delete folder in all child files
+     */
+    fun deleteFolder(folder: File) {
+        Files.walk(folder.toPath())
+            .filter { filter ->
+                filter.isRegularFile()
+            }
+            .forEach { file ->
+                file.toFile()
+                    .delete()
+            }
     }
 }
