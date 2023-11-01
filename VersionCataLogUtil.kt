@@ -15,12 +15,12 @@ class VersionCataLogUtil {
         private const val TAG_REPOSITORIES = "repositories"
         private const val TAG_MAVEN_CATALOG = "versionCatalogs"
 
-        private const val MAVEN_PUBLIC = "        maven { setUrl({${CatalogPlugin.MAVEN_PUBLIC}}) }"
+        private const val MAVEN_PUBLIC = "        maven { setUrl({\n${CatalogPlugin.MAVEN_PUBLIC}\n}) }"
         private const val MAVEN_RELEASE = "        maven {\n" + "            credentials {\n" + "                username = \"${CatalogPlugin.ALY_USER_NAME}\"\n" + "                password = \"${CatalogPlugin.ALY_PASSWORD}\"\n" + "            }\n" + "            setUrl(\"${CatalogPlugin.MAVEN_RELEASE}\")\n" + "        }"
         private const val MAVEN_SNAPSHOT = "        maven {\n" + "            credentials {\n" + "                username = \"${CatalogPlugin.ALY_USER_NAME}\"\n" + "                password = \"${CatalogPlugin.ALY_PASSWORD}\"\n" + "            }\n" + "            setUrl(\"${CatalogPlugin.MAVEN_SNAPSHOT}\")\n" + "        }"
     }
 
-    private val MAVEN_CATALOG = "    $TAG_MAVEN_CATALOG {\n" + "        create(\"libs\") {\n" + "            from(\"${CatalogPlugin.ALY_GROUP}:${CatalogPlugin.CATALOG}:${111}\")\n" + "        }\n" + "    }"
+    private val MAVEN_CATALOG = "    $TAG_MAVEN_CATALOG {\n" + "        create(\"libs\") {\n" + "            from(\"${CatalogPlugin.ALY_GROUP}:${CatalogPlugin.CATALOG}:${"111"}\")\n" + "        }\n" + "    }"
 
     fun write(project: Project) {
         project.rootDir.listFiles().forEach {
