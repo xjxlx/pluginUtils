@@ -5,18 +5,20 @@ import org.json.JSONObject
 
 object JsonUtil {
 
-    fun arrayToObject(array: JSONArray): List<JSONObject> {
+    fun arrayToObject(array: JSONArray?): List<JSONObject> {
         val mutableListOf = mutableListOf<JSONObject>()
         try {
-            val first = array.get(0)
-                .toString()
-            val last = array.get(array.length() - 1)
-                .toString()
-            array.forEach {
-                val content = it.toString()
-                if (content.contains(":")) {
-                    val json = "$first$it$last"
-                    mutableListOf.add(JSONObject(json))
+            array?.let {
+                val first = array.get(0)
+                    .toString()
+                val last = array.get(array.length() - 1)
+                    .toString()
+                array.forEach {
+                    val content = it.toString()
+                    if (content.contains(":")) {
+                        val json = "$first$it$last"
+                        mutableListOf.add(JSONObject(json))
+                    }
                 }
             }
         } catch (e: Exception) {
