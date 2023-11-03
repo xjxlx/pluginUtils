@@ -33,7 +33,7 @@ object HtmlUtil {
         return htmlList
     }
 
-    fun getHtmlForGithubJson(url: String): String? {
+    fun getHtmlForGithubJsonArray(url: String): JSONArray? {
         val doc: Document = Jsoup.connect(url)
             .get()
         val body: Element = doc.body()
@@ -44,13 +44,7 @@ object HtmlUtil {
                     val jsonObject: org.json.JSONObject = org.json.JSONObject(data)
                     val jsonPayload: org.json.JSONObject = jsonObject.getJSONObject("payload")
                     val jsonBlob: org.json.JSONObject = jsonPayload.getJSONObject("blob")
-                    val jsonArray = jsonBlob.getJSONArray("rawLines")
-
-                    return jsonArray.toString()
-                        .replace("\\", "")// 替换反斜杠
-                        .replace("\"\"", "\"")// 替换多余的"
-                        .replace("\"{\",\"", "{")
-                        .replace(",\"}\"", "}")
+                    return jsonBlob.getJSONArray("rawLines")
                 }
             }
         }
