@@ -1,5 +1,6 @@
 package utils
 
+import org.json.JSONArray
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -18,7 +19,7 @@ object HtmlUtil {
                     val jsonObject: org.json.JSONObject = org.json.JSONObject(data)
                     val jsonPayload: org.json.JSONObject = jsonObject.getJSONObject("payload")
                     val jsonBlob: org.json.JSONObject = jsonPayload.getJSONObject("blob")
-                    val rawLines: org.json.JSONArray = jsonBlob.getJSONArray("rawLines")
+                    val rawLines: JSONArray = jsonBlob.getJSONArray("rawLines")
                     for (next in rawLines) {
                         val content = next.toString()
                         htmlList.add(content)
@@ -30,5 +31,29 @@ object HtmlUtil {
             }
         }
         return htmlList
+    }
+
+    fun getHtmlForGithubJson(url: String): String? {
+        val doc: Document = Jsoup.connect(url)
+            .get()
+        val body: Element = doc.body()
+        for (allElement in body.allElements) {
+            val data: String = allElement.data()
+            if (data.isNotEmpty()) {
+                if (data.startsWith("{") && data.endsWith("}")) {
+                    val jsonObject: org.json.JSONObject = org.json.JSONObject(data)
+                    val jsonPayload: org.json.JSONObject = jsonObject.getJSONObject("payload")
+                    val jsonBlob: org.json.JSONObject = jsonPayload.getJSONObject("blob")
+                    val jsonArray = jsonBlob.getJSONArray("rawLines")
+
+                    return jsonArray.toString()
+                        .replace("\\", "")// 替换反斜杠
+                        .replace("\"\"", "\"")// 替换多余的"
+                        .replace("\"{\",\"", "{")
+                        .replace(",\"}\"", "}")
+                }
+            }
+        }
+        return null
     }
 }
