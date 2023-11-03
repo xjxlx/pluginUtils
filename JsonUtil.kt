@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 object JsonUtil {
 
-    fun jsonArrayToJsonObject(array: JSONArray): List<JSONObject> {
+    fun arrayToObject(array: JSONArray): List<JSONObject> {
         val mutableListOf = mutableListOf<JSONObject>()
         try {
             val first = array.get(0)
