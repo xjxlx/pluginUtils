@@ -186,13 +186,13 @@ object FileUtil {
     /**
      *遍历指定要求的文件
      */
-    fun iteratorsFile(path: String, check2: (File) -> Boolean) {
-        val paths = Paths.get(path)
+    fun iteratorsFile(path: String, check: (File) -> Boolean, block: (File) -> Unit) {
         try {
             File(path).listFiles()
                 ?.forEach { child ->
-                    if (check2(child)) {
-                        iteratorsFile(child.absolutePath, check2)
+                    if (check(child)) {
+                        iteratorsFile(child.absolutePath, check, block)
+                        block(child)
                     }
                 }
         } catch (e: IOException) {
