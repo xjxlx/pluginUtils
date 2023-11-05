@@ -3,10 +3,15 @@ package utils
 import org.gradle.api.Project
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
+import java.nio.file.FileVisitResult
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.jar.JarFile
 import kotlin.io.path.isRegularFile
 
@@ -149,5 +154,32 @@ object FileUtil {
                 file.toFile()
                     .delete()
             }
+    }
+
+    /**
+     * 迭代文件夹下的子文件
+     */
+    fun iteratorsDirectory(path: String, block: (Path, BasicFileAttributes) -> Unit) {
+        val paths = Paths.get(path)
+        try {
+            Files.walkFileTree(paths, object : SimpleFileVisitor<Path>() {
+                override fun visitFile(path: Path?, attrs: BasicFileAttributes?): FileVisitResult {
+                    // 遍历到的文件或文件夹，进行检查
+                    if (path != null && attrs != null) {
+                        block(path, attrs)
+                    }
+                    return super.visitFile(path, attrs)
+                }
+
+                override fun visitFileFailed(file: Path?, exc: IOException?): FileVisitResult {
+                    // 处理访问失败的情况，可以记录错误或抛出异常
+                    println("[iteratorsDirectory]:[visitFileFailed]:${file} :[error]:${exc?.message}")
+                    return super.visitFileFailed(file, exc)
+                }
+            })
+        } catch (e: IOException) {
+            e.printStackTrace()
+            println("[iteratorsDirectory]:[path]:${path} :[error]:${e.message}")
+        }
     }
 }
