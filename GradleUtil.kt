@@ -4,8 +4,6 @@ import org.gradle.api.Project
 import org.gradle.internal.impldep.org.apache.http.util.TextUtils
 import org.json.JSONObject
 import org.jsoup.Jsoup
-import utils.FileUtil
-import utils.RandomAccessFileUtil
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
@@ -490,11 +488,64 @@ class GradleUtil {
         return result
     }
 
+    /**
+     * 删除缓存
+     */
+    fun deleteCache(project: Project) {
+        try {
+            // /Users/XJX/.gradle
+            val gradleUserHomeDir = project.gradle.gradleUserHomeDir
+            // delete caches
+            val modules2 = File(gradleUserHomeDir.absolutePath, "caches/modules-2")
+            if (modules2.exists()) {
+                FileUtil.iteratorsFile(modules2.absolutePath, check = { file -> (file.isDirectory) }) { file ->
+                    val fileName = file.name
+                    if (fileName.startsWith(GROUP_GRADLE)) {
+                        println("[delete-gradle]:[${GROUP_GRADLE}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
+                    } else if (fileName.startsWith(GROUP_CATALOG)) {
+                        println("[delete-gradle]:[${GROUP_CATALOG}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
+                    } else if (fileName.startsWith(GROUP_GITHUB)) {
+                        println("[delete-gradle]:[${GROUP_GITHUB}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
+                    }
+                }
+            } else {
+                println("[delete-modules2]:modules2 not exists!")
+            }
+
+            // delete .m2
+            gradleUserHomeDir.parent?.let {
+                val m2Folder = File("${it}/.m2/repository")
+                FileUtil.iteratorsFile(m2Folder.absolutePath, check = { file -> file.isDirectory }) { file ->
+                    val fileName = file.name
+                    if (fileName.startsWith(GROUP_GRADLE)) {
+                        println("[delete-gradle-m2]:[${GROUP_GRADLE}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
+                    } else if (fileName.startsWith(GROUP_CATALOG)) {
+                        println("[delete-gradle-m2]:[${GROUP_CATALOG}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
+                    } else if (fileName.startsWith(GROUP_GITHUB)) {
+                        println("[delete-gradle-m2]:[${GROUP_GITHUB}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            println("[deleteCatalog]:error:${e.message}")
+        }
+    }
+
     companion object {
         private const val SUPPRESS = "@Suppress(\"DSL_SCOPE_VIOLATION\")"
         private const val PLUGINS = "plugins"
         private const val ID = "id"
         private const val IMPLEMENTATION = "implementation"
         private const val VERSION = "version"
+
+        const val GROUP_GRADLE = "io.github.xjxlx"
+        const val GROUP_CATALOG = "com.android.catalog"
+        const val GROUP_GITHUB = "com.github.xjxlx"
     }
 }
