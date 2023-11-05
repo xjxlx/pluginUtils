@@ -9,9 +9,7 @@ class VersionCataLogUtil {
     private val mListContent = arrayListOf<String>()
 
     companion object {
-        private const val ORIGIN_VERSION = "https://github.com/xjxlx/plugins/blob/master/publish/src/main/java/com/android/helper/plugin/29/version.json"
-        const val CATALOG = "catalog"
-
+        private const val ORIGIN_VERSION = "https://github.com/xjxlx/plugins/blob/master/publish/src/main/java/com/android/publish/version/29/version.json"
         private const val TAG_PLUGIN_MANAGEMENT = "pluginManagement"
         private const val TAG_DEPENDENCY_RESOLUTION_MANAGEMENT = "dependencyResolutionManagement"
         private const val TAG_REPOSITORIES_MODE = "repositoriesMode"
