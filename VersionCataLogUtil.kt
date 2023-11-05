@@ -1,6 +1,5 @@
 package utils
 
-import com.android.catalog.CatalogPlugin
 import org.gradle.api.Project
 import org.json.JSONObject
 import java.io.FileOutputStream
@@ -18,6 +17,9 @@ class VersionCataLogUtil {
         private const val TAG_REPOSITORIES_MODE = "repositoriesMode"
         private const val TAG_REPOSITORIES = "repositories"
         private const val TAG_MAVEN_CATALOG = "versionCatalogs"
+        private const val TAG_MAVEN_PUBLIC = "https://maven.aliyun.com/repository/public"
+        private const val TAG_MAVEN_RELEASE = "https://packages.aliyun.com/maven/repository/2131155-release-wH01IT/"
+
         private val jsonList: List<JSONObject>? by lazy {
             HtmlUtil.getHtmlForGithubJsonArray(ORIGIN_VERSION)
                 ?.let {
@@ -107,11 +109,11 @@ class VersionCataLogUtil {
 
                             // 检测中央公共仓库
                             if (!mavenPublicTagFlag) {
-                                mavenPublicTagFlag = (trim.contains(CatalogPlugin.MAVEN_PUBLIC)) && (!trim.startsWith("//"))
+                                mavenPublicTagFlag = (trim.contains(TAG_MAVEN_PUBLIC)) && (!trim.startsWith("//"))
                             }
                             // 检测用户信息-release
                             if (!mavenPublicReleaseTagFlag) {
-                                mavenPublicReleaseTagFlag = (trim.contains(CatalogPlugin.MAVEN_RELEASE)) && (!trim.startsWith("//"))
+                                mavenPublicReleaseTagFlag = (trim.contains(TAG_MAVEN_RELEASE)) && (!trim.startsWith("//"))
                             }
 
                             // 检测catalog
