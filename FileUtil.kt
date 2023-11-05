@@ -159,7 +159,7 @@ object FileUtil {
     /**
      * 迭代文件夹下的子文件
      */
-    fun iteratorsDirectory(path: String, block: (Path, BasicFileAttributes) -> Unit) {
+    fun iteratorsFile(path: String, block: (Path, BasicFileAttributes) -> Unit) {
         val paths = Paths.get(path)
         try {
             Files.walkFileTree(paths, object : SimpleFileVisitor<Path>() {
