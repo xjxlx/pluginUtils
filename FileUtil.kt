@@ -159,7 +159,7 @@ object FileUtil {
     /**
      * 迭代文件夹下的子文件
      */
-    fun iteratorsFile(path: String, block: (Path, BasicFileAttributes) -> Unit) {
+    fun iteratorsAllFile(path: String, block: (Path, BasicFileAttributes) -> Unit) {
         val paths = Paths.get(path)
         try {
             Files.walkFileTree(paths, object : SimpleFileVisitor<Path>() {
@@ -177,6 +177,24 @@ object FileUtil {
                     return super.visitFileFailed(file, exc)
                 }
             })
+        } catch (e: IOException) {
+            e.printStackTrace()
+            println("[iteratorsDirectory]:[path]:${path} :[error]:${e.message}")
+        }
+    }
+
+    /**
+     *遍历指定要求的文件
+     */
+    fun iteratorsFile(path: String, check2: (File) -> Boolean) {
+        val paths = Paths.get(path)
+        try {
+            File(path).listFiles()
+                ?.forEach { child ->
+                    if (check2(child)) {
+                        iteratorsFile(child.absolutePath, check2)
+                    }
+                }
         } catch (e: IOException) {
             e.printStackTrace()
             println("[iteratorsDirectory]:[path]:${path} :[error]:${e.message}")
