@@ -503,8 +503,8 @@ class GradleUtil {
                     if (fileName.startsWith(GROUP_GRADLE)) {
                         println("[delete-gradle]:[${GROUP_GRADLE}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
-                    } else if (fileName.startsWith(GROUP_CATALOG)) {
-                        println("[delete-gradle]:[${GROUP_CATALOG}]:[file]:${file.absolutePath}")
+                    } else if (fileName.startsWith(GROUP_PUBLISH)) {
+                        println("[delete-gradle]:[${GROUP_PUBLISH}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
                     } else if (fileName.startsWith(GROUP_GITHUB)) {
                         println("[delete-gradle]:[${GROUP_GITHUB}]:[file]:${file.absolutePath}")
@@ -523,8 +523,8 @@ class GradleUtil {
                     if (fileName.startsWith(GROUP_GRADLE)) {
                         println("[delete-gradle-m2]:[${GROUP_GRADLE}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
-                    } else if (fileName.startsWith(GROUP_CATALOG)) {
-                        println("[delete-gradle-m2]:[${GROUP_CATALOG}]:[file]:${file.absolutePath}")
+                    } else if (fileName.startsWith(GROUP_PUBLISH)) {
+                        println("[delete-gradle-m2]:[${GROUP_PUBLISH}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
                     } else if (fileName.startsWith(GROUP_GITHUB)) {
                         println("[delete-gradle-m2]:[${GROUP_GITHUB}]:[file]:${file.absolutePath}")
@@ -545,7 +545,7 @@ class GradleUtil {
         private const val VERSION = "version"
 
         const val GROUP_GRADLE = "io.github.xjxlx"
-        const val GROUP_CATALOG = "com.android.catalog"
+        const val GROUP_PUBLISH = "com.android.publish"
         const val GROUP_GITHUB = "com.github.xjxlx"
     }
 }
