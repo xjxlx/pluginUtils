@@ -496,7 +496,7 @@ class GradleUtil {
             // /Users/XJX/.gradle
             val gradleUserHomeDir = project.gradle.gradleUserHomeDir
             // delete caches
-            val modules2 = File(gradleUserHomeDir.absolutePath, "caches/modules-2")
+            val modules2 = File(gradleUserHomeDir.absolutePath, "caches")
             if (modules2.exists()) {
                 FileUtil.iteratorsFile(modules2.absolutePath, check = { file -> (file.isDirectory) }) { file ->
                     val fileName = file.name
@@ -508,6 +508,9 @@ class GradleUtil {
                         FileUtil.deleteFolder(file)
                     } else if (fileName.startsWith(GROUP_GITHUB)) {
                         println("[delete-gradle]:[${GROUP_GITHUB}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
+                    } else if (fileName.startsWith(GROUP_CATALOGS)) {
+                        println("[delete-gradle]:[${GROUP_CATALOGS}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
                     }
                 }
@@ -529,6 +532,9 @@ class GradleUtil {
                     } else if (fileName.startsWith(GROUP_GITHUB)) {
                         println("[delete-gradle-m2]:[${GROUP_GITHUB}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
+                    } else if (fileName.startsWith(GROUP_CATALOGS)) {
+                        println("[delete-gradle-m2]:[${GROUP_CATALOGS}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
                     }
                 }
             }
@@ -547,5 +553,6 @@ class GradleUtil {
         const val GROUP_GRADLE = "io.github.xjxlx"
         const val GROUP_PUBLISH = "com.android.publish"
         const val GROUP_GITHUB = "com.github.xjxlx"
+        const val GROUP_CATALOGS = "com.android.catalogs"
     }
 }
