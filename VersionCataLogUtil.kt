@@ -18,8 +18,11 @@ class VersionCataLogUtil {
         private const val TAG_MAVEN_RELEASE = "https://packages.aliyun.com/maven/repository/2131155-release-wH01IT/"
         private val MAVEN_PUBLIC: String by lazy {
             return@lazy try {
-                mJsonList?.find { find -> find.has("MAVEN_PUBLIC") }?.getString("MAVEN_PUBLIC")
-                ""
+                var mavenPublic = mJsonList?.find { find -> find.has("MAVEN_PUBLIC") }?.getString("MAVEN_PUBLIC")
+                if (mavenPublic == null) {
+                    mavenPublic = ""
+                }
+                mavenPublic
             } catch (e: Exception) {
                 println("[MAVEN_PUBLIC]:error:${e.message}")
                 ""
@@ -27,8 +30,11 @@ class VersionCataLogUtil {
         }
         private val MAVEN_RELEASE: String by lazy {
             return@lazy try {
-                mJsonList?.find { it.has("MAVEN_RELEASE") }?.getString("MAVEN_RELEASE")
-                ""
+                var mavenRelease = mJsonList?.find { it.has("MAVEN_RELEASE") }?.getString("MAVEN_RELEASE")
+                if (mavenRelease == null) {
+                    mavenRelease = ""
+                }
+                mavenRelease
             } catch (e: java.lang.Exception) {
                 println("[MAVEN_RELEASE]:error:${e.message}")
                 ""
@@ -36,8 +42,11 @@ class VersionCataLogUtil {
         }
         private val MAVEN_CATALOG: String by lazy {
             return@lazy try {
-                mJsonList?.find { it.has("MAVEN_CATALOG") }?.getString("MAVEN_CATALOG")
-                ""
+                var mavenCatalog = mJsonList?.find { it.has("MAVEN_CATALOG") }?.getString("MAVEN_CATALOG")
+                if (mavenCatalog == null) {
+                    mavenCatalog = ""
+                }
+                mavenCatalog
             } catch (e: java.lang.Exception) {
                 println("[MAVEN_CATALOG]:error:${e.message}")
                 ""
