@@ -21,6 +21,7 @@ class VersionCataLogUtil {
                 mJsonList?.find { find -> find.has("MAVEN_PUBLIC") }?.getString("MAVEN_PUBLIC")
                 ""
             } catch (e: Exception) {
+                println("[MAVEN_PUBLIC]:error:${e.message}")
                 ""
             }
         }
@@ -29,6 +30,7 @@ class VersionCataLogUtil {
                 mJsonList?.find { it.has("MAVEN_RELEASE") }?.getString("MAVEN_RELEASE")
                 ""
             } catch (e: java.lang.Exception) {
+                println("[MAVEN_RELEASE]:error:${e.message}")
                 ""
             }
         }
@@ -37,6 +39,7 @@ class VersionCataLogUtil {
                 mJsonList?.find { it.has("MAVEN_CATALOG") }?.getString("MAVEN_CATALOG")
                 ""
             } catch (e: java.lang.Exception) {
+                println("[MAVEN_CATALOG]:error:${e.message}")
                 ""
             }
         }
