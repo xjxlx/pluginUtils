@@ -1,7 +1,7 @@
 package utils
 
+import com.android.publish.PublishPlugin.Companion.mJsonList
 import org.gradle.api.Project
-import org.json.JSONObject
 import java.io.FileOutputStream
 
 class VersionCataLogUtil {
@@ -9,8 +9,6 @@ class VersionCataLogUtil {
     private val mListContent = arrayListOf<String>()
 
     companion object {
-        private const val ORIGIN_VERSION =
-            "https://github.com/xjxlx/plugins/blob/master/publish/src/main/java/com/android/publish/version/version.json"
         private const val TAG_PLUGIN_MANAGEMENT = "pluginManagement"
         private const val TAG_DEPENDENCY_RESOLUTION_MANAGEMENT = "dependencyResolutionManagement"
         private const val TAG_REPOSITORIES_MODE = "repositoriesMode"
@@ -18,38 +16,29 @@ class VersionCataLogUtil {
         private const val TAG_MAVEN_CATALOG = "versionCatalogs"
         private const val TAG_MAVEN_PUBLIC = "https://maven.aliyun.com/repository/public"
         private const val TAG_MAVEN_RELEASE = "https://packages.aliyun.com/maven/repository/2131155-release-wH01IT/"
-
-        private val jsonList: List<JSONObject>? by lazy {
-            HtmlUtil.getHtmlForGithubJsonArray(ORIGIN_VERSION)
-                ?.let {
-                    val arrayToObject = JsonUtil.arrayToObject(it)
-                    return@lazy arrayToObject
-                }
-            return@lazy null
-        }
         private val MAVEN_PUBLIC: String by lazy {
-            jsonList?.find { it.has("MAVEN_PUBLIC") }
-                ?.getString("MAVEN_PUBLIC")
-                ?.let {
-                    return@lazy it
-                }
-            return@lazy ""
+            return@lazy try {
+                mJsonList?.find { find -> find.has("MAVEN_PUBLIC") }?.getString("MAVEN_PUBLIC")
+                ""
+            } catch (e: Exception) {
+                ""
+            }
         }
         private val MAVEN_RELEASE: String by lazy {
-            jsonList?.find { it.has("MAVEN_RELEASE") }
-                ?.getString("MAVEN_RELEASE")
-                ?.let {
-                    return@lazy it
-                }
-            return@lazy ""
+            return@lazy try {
+                mJsonList?.find { it.has("MAVEN_RELEASE") }?.getString("MAVEN_RELEASE")
+                ""
+            } catch (e: java.lang.Exception) {
+                ""
+            }
         }
         private val MAVEN_CATALOG: String by lazy {
-            jsonList?.find { it.has("MAVEN_CATALOG") }
-                ?.getString("MAVEN_CATALOG")
-                ?.let {
-                    return@lazy it
-                }
-            return@lazy ""
+            return@lazy try {
+                mJsonList?.find { it.has("MAVEN_CATALOG") }?.getString("MAVEN_CATALOG")
+                ""
+            } catch (e: java.lang.Exception) {
+                ""
+            }
         }
     }
 
