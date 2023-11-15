@@ -509,6 +509,9 @@ class GradleUtil {
                     } else if (fileName.contains(GROUP_CATALOGS)) {
                         println("[delete-gradle]:[${GROUP_CATALOGS}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
+                    } else if (fileName.contains(GROUP_BUDDY)) {
+                        println("[delete-gradle]:[${GROUP_BUDDY}]:[file]:${file.absolutePath}")
+                        FileUtil.deleteFolder(file)
                     }
                 }
             } else {
@@ -547,5 +550,6 @@ class GradleUtil {
         const val GROUP_GRADLE = "io.github.xjxlx"
         const val GROUP_GITHUB = "com.github.xjxlx"
         const val GROUP_CATALOGS = "catalogs"
+        const val GROUP_BUDDY = "buddy"
     }
 }
