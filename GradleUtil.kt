@@ -500,10 +500,10 @@ class GradleUtil {
             if (modules2.exists()) {
                 FileUtil.iteratorsFile(modules2.absolutePath, check = { file -> (file.isDirectory) }) { file ->
                     val fileName = file.name
-                    if (fileName.startsWith(GROUP_GRADLE)) {
+                    if (fileName.contains(GROUP_GRADLE)) {
                         println("[delete-gradle]:[${GROUP_GRADLE}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
-                    } else if (fileName.startsWith(GROUP_GITHUB)) {
+                    } else if (fileName.contains(GROUP_GITHUB)) {
                         println("[delete-gradle]:[${GROUP_GITHUB}]:[file]:${file.absolutePath}")
                         FileUtil.deleteFolder(file)
                     } else if (fileName.contains(GROUP_CATALOGS)) {
