@@ -1,7 +1,7 @@
 package utils
-
 object PrintUtil {
-    fun println(content: String) {
-        println(content)
+
+    public fun println(message: Any?) {
+        kotlin.io.println(message)
     }
 }
