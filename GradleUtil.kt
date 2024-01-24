@@ -37,6 +37,7 @@ class GradleUtil {
         }
         initGradle(mRootDir)
     }
+
     /**
      * @param url       服务器上libs文件的地址
      * @param localLibs 写入项目中文件的地址，一般是在项目中.gradle文件下面，这里交给用户去自己定义
@@ -57,16 +58,22 @@ class GradleUtil {
                     if (data.isNotEmpty()) {
                         if (data.startsWith("{") && data.endsWith("}")) {
                             val jsonObject = JSONObject(data)
-                            val jsonPayload = jsonObject.getJSONObject("payload")
-                            val jsonBlob = jsonPayload.getJSONObject("blob")
-                            val rawLines = jsonBlob.getJSONArray("rawLines")
-                            for (next in rawLines) {
-                                val content = next.toString()
-                                outputStream?.write(content.toByteArray())
-                                outputStream?.write("\r\n".toByteArray())
+                            if (jsonObject.has("payload")) {
+                                val jsonPayload = jsonObject.getJSONObject("payload")
+                                if (jsonPayload.has("blob")) {
+                                    val jsonBlob = jsonPayload.getJSONObject("blob")
+                                    if (jsonBlob.has("rawLines")) {
+                                        val rawLines = jsonBlob.getJSONArray("rawLines")
+                                        for (next in rawLines) {
+                                            val content = next.toString()
+                                            outputStream?.write(content.toByteArray())
+                                            outputStream?.write("\r\n".toByteArray())
+                                        }
+                                        println("gradle-file write success!")
+                                        return
+                                    }
+                                }
                             }
-                            println("gradle-file write success!")
-                            return
                         }
                     }
                 }
