@@ -42,9 +42,15 @@ object HtmlUtil {
             if (data.isNotEmpty()) {
                 if (data.startsWith("{") && data.endsWith("}")) {
                     val jsonObject: org.json.JSONObject = org.json.JSONObject(data)
-                    val jsonPayload: org.json.JSONObject = jsonObject.getJSONObject("payload")
-                    val jsonBlob: org.json.JSONObject = jsonPayload.getJSONObject("blob")
-                    return jsonBlob.getJSONArray("rawLines")
+                    if (jsonObject.has("payload")) {
+                        val jsonPayload: org.json.JSONObject = jsonObject.getJSONObject("payload")
+                        if (jsonPayload.has("blob")) {
+                            val jsonBlob: org.json.JSONObject = jsonPayload.getJSONObject("blob")
+                            if (jsonBlob.has("rawLines")) {
+                                return jsonBlob.getJSONArray("rawLines")
+                            }
+                        }
+                    }
                 }
             }
         }
